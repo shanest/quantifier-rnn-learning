@@ -37,6 +37,26 @@ class Quantifier(object):
     def __call__(self, seq):
         return self._verify(seq)
 
+def all_ver(seq):
+
+    for item in seq:
+        if np.array_equal(item, Quantifier.AnotB):
+            return Quantifier.F
+    return Quantifier.T
+every = Quantifier("every",
+        isom=True, cons=True, lcons=False, rmon=True, lmon=False,
+        fn=all_ver)
+
+def only_ver(seq):
+
+    for item in seq:
+        if np.array_equal(item, Quantifier.BnotA):
+            return Quantifier.F
+    return Quantifier.T
+only = Quantifier("only",
+        isom=True, cons=False, lcons=True, rmon=False, lmon=True,
+        fn=only_ver)
+
 def at_least_n_ver(seq, n):
     """Verifies whether |A cap B| > n.
 
