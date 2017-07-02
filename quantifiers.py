@@ -57,6 +57,20 @@ only = Quantifier("only",
         isom=True, cons=False, lcons=True, rmon=False, lmon=True,
         fn=only_ver)
 
+def even_ver(seq):
+
+    num_AB = 0
+    for item in seq:
+        if np.array_equal(item, Quantifier.AB):
+            num_AB += 1
+    if num_AB % 2 == 0:
+        return Quantifier.T
+    else:
+        return Quantifier.F
+even = Quantifier("even",
+        isom=True, cons=True, lcons=True, rmon=None, lmon=None,
+        fn=even_ver)
+
 def at_least_n_ver(seq, n):
     """Verifies whether |A cap B| > n.
 

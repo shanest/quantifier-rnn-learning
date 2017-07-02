@@ -46,9 +46,10 @@ class DataGenerator(object):
         quant_labels = np.identity(num_quants)
         self._labeled_data = []
 
-        #TODO: more quantifiers here, as part of data...
         for idx in range(num_quants):
             self._labeled_data.extend(
+                    # add label for quantifier to each character, then
+                    # add truth value to each sequence for one labeled data point
                     [( [np.concatenate([char, quant_labels[idx]]) for char in seq] , 
                         self._quantifiers[idx](seq))
                         for seq in self._models])
