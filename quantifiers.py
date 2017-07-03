@@ -38,27 +38,50 @@ class Quantifier(object):
         return self._verify(seq)
 
 def all_ver(seq):
+    """Verifies whether every A is a B in a sequence.
+    
+    Args:
+        seq: a sequence of elements of R^4
 
+    Returns:
+        Quantifier.T iff there are no Quantifier.AnotBs in seq
+    """
     for item in seq:
         if np.array_equal(item, Quantifier.AnotB):
             return Quantifier.F
     return Quantifier.T
+
 every = Quantifier("every",
         isom=True, cons=True, lcons=False, rmon=True, lmon=False,
         fn=all_ver)
 
 def only_ver(seq):
+    """Verifies whether only As are Bs in a sequence.
 
+    Args:
+        seq: a sequence of elements of R^4
+
+    Returns:
+        Quantifier.T iff there are no Quantifier.BnotAs in seq
+    """
     for item in seq:
         if np.array_equal(item, Quantifier.BnotA):
             return Quantifier.F
     return Quantifier.T
+
 only = Quantifier("only",
         isom=True, cons=False, lcons=True, rmon=False, lmon=True,
         fn=only_ver)
 
 def even_ver(seq):
+    """Verifies whether the number of As that are B is even.
 
+    Args:
+        seq: a sequence of elements of R^4
+
+    Returns:
+        Quantifier.T iff the number of Quantifier.ABs in seq is even
+    """
     num_AB = 0
     for item in seq:
         if np.array_equal(item, Quantifier.AB):
@@ -67,9 +90,25 @@ def even_ver(seq):
         return Quantifier.T
     else:
         return Quantifier.F
+
 even = Quantifier("even",
         isom=True, cons=True, lcons=True, rmon=None, lmon=None,
         fn=even_ver)
+
+def odd_ver(seq):
+    """Verifies whether the number of As that are B is odd.
+
+    Args:
+        seq: a sequence of elements of R^4
+
+    Returns:
+        Quantifier.T iff the number of Quantifier.ABs in seq is odd
+    """
+    return Quantifier.T if even_ver(seq) == Quantifier.F else Quantifier.F
+
+odd = Quantifier("odd",
+        isom=True, cons=True, lcons=True, rmon=None, lmon=None,
+        fn=odd_ver)
 
 def at_least_n_ver(seq, n):
     """Verifies whether |A cap B| > n.
@@ -123,6 +162,7 @@ def most_ver(seq):
         elif np.array_equal(item, Quantifier.AnotB):
             diff -= 1
     return Quantifier.T if diff > 0 else Quantifier.F
+
 most = Quantifier("most",
         isom=True, cons=True, lcons=False, rmon=True, lmon=None,
         fn=most_ver)
@@ -140,7 +180,6 @@ def first_n_ver(seq, n):
         Quantifier.F if either seq has length less than n or there are 
         fewer than n Quantifier.ABs in seq.
     """
-
     # TODO: more complicated presupposition handling instead of just false?
     if len(seq) < n:
         return Quantifier.F
