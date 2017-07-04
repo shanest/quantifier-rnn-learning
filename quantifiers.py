@@ -212,6 +212,30 @@ def first_n(n):
 
 first_three = first_n(3)
 
+def equal_number_ver(seq):
+    """Generates a Quantifier corresponding to `the number of As equals the number of Bs'.
+
+    Args:
+        seq: sequence of elts of R^4
+
+    Returns:
+        Quantifier.T iff the number of Quantifier.ABs plus Quantifier.AnotBs is the same as 
+        the number of Quanitifer.BnotAs plus Quantifier.ABs
+    """
+    num_AB, num_AnotB, num_BnotA = 0, 0, 0
+    for item in seq:
+        if np.array_equal(item, Quantifier.AB):
+            num_AB += 1
+        elif np.array_equal(item, Quantifier.AnotB):
+            num_AnotB += 1
+        elif np.array_equal(item, Quantifier.BnotA):
+            num_BnotA += 1
+    return Quantifier.T if num_AnotB == num_BnotA else Quantifier.F
+
+equal_number = Quantifier("equal number",
+        isom=True, cons=False, lcons=False, rmon=None, lmon=None,
+        fn=equal_number_ver)
+
 def get_all_quantifiers():
     """Returns: a list of all Quantifiers that have been created so far.
     """

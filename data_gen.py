@@ -1,6 +1,12 @@
-import numpy as np
+from __future__ import division
+
 import itertools
 import math
+import os
+import time
+
+import numpy as np
+
 import quantifiers
 
 #TODO: move batching logic from quant_verify.run_experiment to here?
@@ -10,7 +16,7 @@ class DataGenerator(object):
 
     #TODO: document; mode = r, w, g [generate]
     def __init__(self, max_len, quants=quantifiers.get_all_quantifiers(), training_split=0.7,
-            mode='r', file_path='/tmp/quantexp/data/', test_bins=12):
+            mode='r', file_path='/tmp/quantexp/data/', bin_size=1e6):
 
         self._max_len = max_len
         self._quantifiers = quants
@@ -21,6 +27,12 @@ class DataGenerator(object):
 
         if mode == 'g':
             self._labeled_data = self._generate_labeled_data()
+        elif mode == 'w':
+            self.write_labeled_data(file_path, bin_size)
+        elif mode == 'r':
+            pass
+        else:
+            raise ValueError("mode must be one of g, w, r")
 
     def _generate_sequences(self):
         """Generates (sequence, quantifier_index) pairs for all sequences
@@ -112,3 +124,91 @@ class DataGenerator(object):
             self._test_data = self._labeled_data[idx:]
 
         return self._test_data
+
+    def write_labeled_data(self, file_path, num_files=256):
+
+        num_quants = len(self._quantifiers)
+        split = self._training_split
+        # N_q * Sum_1^n 4^n data points
+        total_data_size = num_quants * sum([quantifiers.Quantifier.num_chars ** n for n in xrange(1, self._max_len+1)])
+
+        num_train_bins = max(1, int(split*num_files))
+        num_test_bins = max(1, int((1-split)*num_files))
+
+        train_input_filenames = ['{}train_input_{}.txt'.format(file_path, idx) for idx in xrange(num_train_bins)]
+        train_label_filenames = ['{}train_labels_{}.txt'.format(file_path, idx) for idx in xrange(num_train_bins)]
+        test_input_filenames = ['{}test_input_{}.txt'.format(file_path, idx) for idx in xrange(num_train_bins)]
+        test_label_filenames = ['{}test_labels_{}.txt'.format(file_path, idx) for idx in xrange(num_train_bins)]
+
+        train_input_files = [open(fn, 'w+') for fn in train_input_filenames]
+        train_label_files = [open(fn, 'w+') for fn in train_label_filenames]
+        test_input_files = [open(fn, 'w+') for fn in test_input_filenames]
+        test_label_files = [open(fn, 'w+') for fn in test_label_filenames]
+
+        t0 = time.time()
+        print 'files opened...'
+
+        for tup in self._generate_sequences():
+
+            eg_input, eg_label = self._point_from_tuple(tup)
+            if np.random.random() < split:
+                # training example
+                train_idx = np.random.randint(num_train_bins)
+                train_input_files[train_idx].write(self._input_to_str(eg_input) + '\n')
+                train_label_files[train_idx].write(self._label_to_str(eg_label) + '\n')
+            else:
+                # test example
+                test_idx = np.random.randint(num_test_bins)
+                test_input_files[test_idx].write(self._input_to_str(eg_input) + '\n')
+                test_label_files[test_idx].write(self._label_to_str(eg_label) + '\n')
+
+        t1 = time.time()
+        print 'initial loop took: {} seconds'.format(t1-t0)
+
+        # make sure all the data has been written, move buffers back to start
+        for f in train_input_files + train_label_files + test_input_files + test_label_files:
+            f.flush()
+            os.fsync(f)
+            f.seek(0)
+
+        t2 = time.time()
+        print 'randomizing each file'
+        # randomize each file
+        for infile, label_file in zip(train_input_files, train_label_files) + zip(test_input_files, test_label_files):
+            inputs = infile.readlines()
+            labels = label_file.readlines()
+            assert len(inputs) == len(labels)
+            idxs = np.arange(len(inputs))
+            np.random.shuffle(idxs)
+            infile.seek(0)
+            label_file.seek(0)
+            for i in idxs:
+                infile.write(inputs[i])
+                label_file.write(labels[i])
+            # now, close for good
+            infile.close()
+            label_file.close()
+        t3 = time.time()
+
+        print 'randomization took: {} seconds'.format(t3-t2)
+        print 'total time to write data: {} seconds'.format(t3-t0)
+
+    def _input_to_str(self, seq):
+        """Generates string for a nested list, corresponding to one input for the model.
+
+        Args:
+            seq: a sequence, corresponding to a model tagged with a quantifier
+
+        Returns:
+            a string, with tab-separated sub-items, each item being space separated
+        """
+        return '\t'.join( ' '.join( str(item) for item in ls ) for ls in seq )
+
+    def _str_to_input(self, string):
+        return tuple([np.array(item.split(' '), dtype=float) for item in string.split('\t')])
+
+    def _label_to_str(self, label):
+        return '\t'.join( str(i) for i in label )
+
+    def _str_to_label(self, string):
+        return tuple([int(i) for i in string.split('\t')])
