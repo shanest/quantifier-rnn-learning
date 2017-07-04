@@ -126,7 +126,7 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
 
 
         # GENERATE DATA
-        generator = data_gen.DataGenerator(hparams['max_len'], eparams['quantifiers'])
+        generator = data_gen.DataGenerator(hparams['max_len'], eparams['quantifiers'], mode=eparams['generator_mode'])
 
         test_data = generator.get_test_data()
         test_models = [datum[0] for datum in test_data]
@@ -167,6 +167,6 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
 
 # RUN AN EXPERIMENT
 run_experiment(
-        {'num_epochs': 4, 'batch_size': 8, 'quantifiers': quantifiers.get_all_quantifiers()},
+        {'num_epochs': 4, 'batch_size': 8, 'quantifiers': quantifiers.get_all_quantifiers(), 'generator_mode': 'g'},
         {'hidden_size': 32, 'num_layers': 2, 'max_len': 8, 'num_classes': 2},
 )
