@@ -38,12 +38,17 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
         # -- lengths: [batch_size]
         lengths = length(input_models)
 
-        #TODO: consider other RNN cells?
-        cell = tf.contrib.rnn.LSTMCell(hparams['hidden_size'])
+        cells = []
+        for _ in range(hparams['num_layers']):
+            #TODO: consider other RNN cells?
+            cell = tf.contrib.rnn.LSTMCell(hparams['hidden_size'])
+            #TODO: wrap in dropout?
+            cells.append(cell)
+        multi_cell = tf.contrib.rnn.MultiRNNCell(cells)
 
         # run on input
         # -- output: [batch_size, max_len, out_size]
-        output, state = tf.nn.dynamic_rnn(cell, input_models, dtype=tf.float32, sequence_length=lengths)
+        output, state = tf.nn.dynamic_rnn(multi_cell, input_models, dtype=tf.float32, sequence_length=lengths)
 
         #TODO: modify to allow prediction at every time step, in order to examine how network works
 
@@ -163,5 +168,5 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
 # RUN AN EXPERIMENT
 run_experiment(
         {'num_epochs': 4, 'batch_size': 8, 'quantifiers': quantifiers.get_all_quantifiers()},
-        {'hidden_size': 32, 'num_layers': 1, 'max_len': 8, 'num_classes': 2},
+        {'hidden_size': 32, 'num_layers': 2, 'max_len': 8, 'num_classes': 2},
 )
