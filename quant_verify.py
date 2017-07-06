@@ -168,5 +168,5 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
 # RUN AN EXPERIMENT
 run_experiment(
         {'num_epochs': 4, 'batch_size': 8, 'quantifiers': quantifiers.get_all_quantifiers(), 'generator_mode': 'g'},
-        {'hidden_size': 32, 'num_layers': 1, 'max_len': 8, 'num_classes': 2},
+        {'hidden_size': 32, 'num_layers': 1, 'max_len': 20, 'num_classes': 2},
 )
