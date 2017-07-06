@@ -126,7 +126,7 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
 
 
         # GENERATE DATA
-        generator = data_gen.DataGenerator(hparams['max_len'], eparams['quantifiers'], mode=eparams['generator_mode'])
+        generator = data_gen.DataGenerator(hparams['max_len'], eparams['quantifiers'], mode=eparams['generator_mode'], num_data_points=eparams['num_data'])
 
         test_data = generator.get_test_data()
         test_models = [datum[0] for datum in test_data]
@@ -160,13 +160,13 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
                     test_writer.add_summary(summary, batch_idx + num_batches*epoch_idx)
                     print 'Accuracy at step {}: {}'.format(batch_idx, acc)
 
-            epoch_loss, epoch_accuracy = sess.run([total_loss, update_accuracy], {input_models: test_models, input_labels: test_labels})
+            epoch_loss, epoch_accuracy = sess.run([total_loss, accuracy], {input_models: test_models, input_labels: test_labels})
             print 'Epoch {} done'.format(epoch_idx)
             print 'Loss: {}'.format(epoch_loss)
             print 'Accuracy: {}'.format(epoch_accuracy)
 
 # RUN AN EXPERIMENT
 run_experiment(
-        {'num_epochs': 4, 'batch_size': 8, 'quantifiers': quantifiers.get_all_quantifiers(), 'generator_mode': 'g'},
-        {'hidden_size': 32, 'num_layers': 1, 'max_len': 20, 'num_classes': 2},
+        {'num_epochs': 4, 'batch_size': 8, 'quantifiers': quantifiers.get_all_quantifiers(), 'generator_mode': 'g', 'num_data': 100000},
+        {'hidden_size': 64, 'num_layers': 1, 'max_len': 20, 'num_classes': 2},
 )
