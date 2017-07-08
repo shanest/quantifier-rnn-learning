@@ -145,6 +145,37 @@ def at_least_n(n):
 some = at_least_n(1)
 at_least_three = at_least_n(3)
 
+def exactly_n_ver(seq, n):
+    """Verifies whether |A cap B| = n.
+
+    Args:
+        seq: a sequence of elements from R^4
+        n: an integer
+
+    Returns:
+        Quantifier.T iff exactly n elements are Quantifier.AB
+    """
+    num_AB=0
+    for item in seq:
+        if np.array_equal(item, Quantifier.AB):
+            num_AB += 1
+    return Quantifier.T if num_AB == n else Quantifier.F
+
+def exactly_n(n):
+    """Generates a Quantifier corresponding to at least n.
+
+    Args: 
+        n: integer
+
+    Returns:
+        Quantifier, with exactly_n_ver(_, n) as its verifier
+    """
+    return Quantifier("exactly {}".format(n),
+            isom=True, cons=True, lcons=True, rmon=None, lmon=None,
+            fn=lambda seq: exactly_n_ver(seq, n))
+
+exactly_three = exactly_n(3)
+
 def most_ver(seq):
     """Verifies whether |A cap B| > |A - B|
 
@@ -240,3 +271,10 @@ def get_all_quantifiers():
     """Returns: a list of all Quantifiers that have been created so far.
     """
     return [quant for quant in gc.get_objects() if isinstance(quant, Quantifier)]
+
+def get_nonparity_quantifiers():
+
+    quants = get_all_quantifiers()
+    quants.remove(even)
+    quants.remove(odd)
+    return quants
