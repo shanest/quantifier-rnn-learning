@@ -55,6 +55,24 @@ every = Quantifier("every",
         isom=True, cons=True, lcons=False, rmon=True, lmon=False,
         fn=all_ver)
 
+def notall_ver(seq):
+    """Verifies whether not all As are Bs in a sequence.
+
+    Args:
+        seq: a sequence of elements of R^4
+
+    Returns:
+        Quantifier.T iff there is a Quantifier.AnotB in seq
+    """
+    for item in seq:
+        if np.array_equal(item, Quantifier.AnotB):
+            return Quantifier.T
+    return Quantifier.F
+
+nall = Quantifier("not all",
+        isom=True, cons=True, lcons=False, rmon=False, lmon=True,
+        fn=notall_ver)
+
 def only_ver(seq):
     """Verifies whether only As are Bs in a sequence.
 
@@ -72,6 +90,24 @@ def only_ver(seq):
 only = Quantifier("only",
         isom=True, cons=False, lcons=True, rmon=False, lmon=True,
         fn=only_ver)
+
+def notonly_ver(seq):
+    """Verifies whether not only As are Bs in a sequence.
+
+    Args:
+        seq: a sequence of elements of R^4
+
+    Returns:
+        Quantifier.T iff there is a Quantifier.BnotA in seq
+    """
+    for item in seq:
+        if np.array_equal(item, Quantifier.BnotA):
+            return Quantifier.T
+    return Quantifier.F
+
+notonly = Quantifier("not only",
+        isom=True, cons=False, lcons=True, rmon=True, lmon=False,
+        fn=notonly_ver)
 
 def even_ver(seq):
     """Verifies whether the number of As that are B is even.
