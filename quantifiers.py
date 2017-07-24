@@ -90,6 +90,24 @@ nall = Quantifier("not all",
         isom=True, cons=True, lcons=False, rmon=False, lmon=True,
         fn=notall_ver)
 
+def no_ver(seq):
+    """Verifies whether no As are Bs in a sequence.
+
+    Args:
+        seq: a sequence of elements of R^4
+
+    Returns:
+        Quantifier.T iff there is not a Quantifier.AB in seq
+    """
+    for item in seq:
+        if np.array_equal(item, Quantifier.AB):
+            return Quantifier.F
+    return Quantifier.T
+
+no = Quantifier("no",
+        isom=True, cons=True, lcons=False, rmon=False, lmon=False,
+        fn=no_ver)
+
 def only_ver(seq):
     """Verifies whether only As are Bs in a sequence.
 

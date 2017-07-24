@@ -113,16 +113,20 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
         # -- prediction_by_quant[i]: Tensor containing predictions for quantifier i
         prediction_by_quant = tf.dynamic_partition(prediction, quant_indices, num_quants)
         # -- target_by_quant: a list num_quants long
-        # -- target_by_quant[i]: Tensor containing predictions for quantifier i
+        # -- target_by_quant[i]: Tensor containing true for quantifier i
         target_by_quant = tf.dynamic_partition(target, quant_indices, num_quants)
 
         quant_accs = []
+        quant_label_dists = []
         for idx in range(num_quants):
             # -- quant_accs[idx]: accuracy for each quantifier
             quant_accs.append(
                     tf.reduce_mean(tf.to_float(
                         tf.equal(prediction_by_quant[idx], target_by_quant[idx]))))
             tf.summary.scalar('{} accuracy'.format(eparams['quantifiers'][idx]._name), quant_accs[idx])
+            _, _, label_counts = tf.unique_with_counts(target_by_quant[idx])
+            quant_label_dists.append(label_counts)
+                    
 
         # -- loss: [batch_size]
         loss = tf.nn.softmax_cross_entropy_with_logits(
@@ -154,6 +158,11 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
 
+        #TODO: document this and section above that generates the ops
+        label_dists = sess.run(quant_label_dists, {input_models: test_models, input_labels: test_labels}) 
+        for idx in range(len(label_dists)):
+            print '{}: {}'.format(eparams['quantifiers'][idx]._name , float(max(label_dists[idx])) / sum(label_dists[idx]))
+
         batch_size = eparams['batch_size']
 
         for epoch_idx in range(eparams['num_epochs']):
@@ -184,6 +193,6 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
 
 # RUN AN EXPERIMENT
 run_experiment(
-        {'num_epochs': 4, 'batch_size': 8, 'quantifiers': quantifiers.get_nonparity_quantifiers(), 'generator_mode': 'g', 'num_data': 100000},
-        {'hidden_size': 32, 'num_layers': 1, 'max_len': 20, 'num_classes': 2},
+        {'num_epochs': 4, 'batch_size': 8, 'quantifiers': [quantifiers.every, quantifiers.some, quantifiers.no, quantifiers.nall, quantifiers.most, quantifiers.even], 'generator_mode': 'g', 'num_data': 200000},
+        {'hidden_size': 16, 'num_layers': 1, 'max_len': 20, 'num_classes': 2},
 )
