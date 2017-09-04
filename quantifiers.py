@@ -18,27 +18,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 import numpy as np
 import gc
 
+
 class Quantifier(object):
 
     # 4 chars: A cap B, A - B, B - A, M - (A cup B)
     num_chars = 4
-    #chars = one-hot encoding
+    # chars = one-hot encoding
     chars = np.identity(num_chars)
-    #zero char for padding
+    # zero char for padding
     zero_char = np.zeros(num_chars)
 
-    #name the characters, for readability
+    # name the characters, for readability
     AB = chars[0]
     AnotB = chars[1]
     BnotA = chars[2]
     neither = chars[3]
 
-    T = (1,0)
-    F = (0,1)
+    T = (1, 0)
+    F = (0, 1)
 
-    #TODO: other properties of quantifiers?
+    # TODO: other properties of quantifiers?
 
-    def __init__(self, name, isom=True, cons=True, lcons=False, rmon=True, lmon=None, fn=None):
+    def __init__(self, name, isom=True, cons=True, lcons=False,
+            rmon=True, lmon=None, fn=None):
 
         if fn is None:
             raise ValueError("supply a function for verifying a quantifier!")
@@ -54,9 +56,10 @@ class Quantifier(object):
     def __call__(self, seq):
         return self._verify(seq)
 
+
 def all_ver(seq):
     """Verifies whether every A is a B in a sequence.
-    
+
     Args:
         seq: a sequence of elements of R^4
 
@@ -68,9 +71,11 @@ def all_ver(seq):
             return Quantifier.F
     return Quantifier.T
 
+
 every = Quantifier("every",
         isom=True, cons=True, lcons=False, rmon=True, lmon=False,
         fn=all_ver)
+
 
 def notall_ver(seq):
     """Verifies whether not all As are Bs in a sequence.
@@ -86,9 +91,11 @@ def notall_ver(seq):
             return Quantifier.T
     return Quantifier.F
 
+
 nall = Quantifier("not all",
         isom=True, cons=True, lcons=False, rmon=False, lmon=True,
         fn=notall_ver)
+
 
 def no_ver(seq):
     """Verifies whether no As are Bs in a sequence.
@@ -104,9 +111,11 @@ def no_ver(seq):
             return Quantifier.F
     return Quantifier.T
 
+
 no = Quantifier("no",
         isom=True, cons=True, lcons=False, rmon=False, lmon=False,
         fn=no_ver)
+
 
 def only_ver(seq):
     """Verifies whether only As are Bs in a sequence.
@@ -122,9 +131,11 @@ def only_ver(seq):
             return Quantifier.F
     return Quantifier.T
 
+
 only = Quantifier("only",
         isom=True, cons=False, lcons=True, rmon=False, lmon=True,
         fn=only_ver)
+
 
 def notonly_ver(seq):
     """Verifies whether not only As are Bs in a sequence.
@@ -140,9 +151,11 @@ def notonly_ver(seq):
             return Quantifier.T
     return Quantifier.F
 
+
 notonly = Quantifier("not only",
         isom=True, cons=False, lcons=True, rmon=True, lmon=False,
         fn=notonly_ver)
+
 
 def even_ver(seq):
     """Verifies whether the number of As that are B is even.
@@ -162,9 +175,11 @@ def even_ver(seq):
     else:
         return Quantifier.F
 
+
 even = Quantifier("even",
         isom=True, cons=True, lcons=True, rmon=None, lmon=None,
         fn=even_ver)
+
 
 def odd_ver(seq):
     """Verifies whether the number of As that are B is odd.
@@ -177,9 +192,11 @@ def odd_ver(seq):
     """
     return Quantifier.T if even_ver(seq) == Quantifier.F else Quantifier.F
 
+
 odd = Quantifier("odd",
         isom=True, cons=True, lcons=True, rmon=None, lmon=None,
         fn=odd_ver)
+
 
 def at_least_n_ver(seq, n):
     """Verifies whether |A cap B| > n.
@@ -200,21 +217,24 @@ def at_least_n_ver(seq, n):
                 num_AB += 1
     return Quantifier.F
 
+
 def at_least_n(n):
     """Generates a Quantifier corresponding to at least n.
 
-    Args: 
+    Args:
         n: integer
 
     Returns:
         Quantifier, with at_least_n_ver(_, n) as its verifier
     """
     return Quantifier("at least {}".format(n),
-            isom=True, cons=True, lcons=True, rmon=True, lmon=True, 
+            isom=True, cons=True, lcons=True, rmon=True, lmon=True,
             fn=lambda seq: at_least_n_ver(seq, n))
+
 
 some = at_least_n(1)
 at_least_three = at_least_n(3)
+
 
 def exactly_n_ver(seq, n):
     """Verifies whether |A cap B| = n.
@@ -226,16 +246,17 @@ def exactly_n_ver(seq, n):
     Returns:
         Quantifier.T iff exactly n elements are Quantifier.AB
     """
-    num_AB=0
+    num_AB = 0
     for item in seq:
         if np.array_equal(item, Quantifier.AB):
             num_AB += 1
     return Quantifier.T if num_AB == n else Quantifier.F
 
+
 def exactly_n(n):
     """Generates a Quantifier corresponding to at least n.
 
-    Args: 
+    Args:
         n: integer
 
     Returns:
@@ -245,7 +266,9 @@ def exactly_n(n):
             isom=True, cons=True, lcons=True, rmon=None, lmon=None,
             fn=lambda seq: exactly_n_ver(seq, n))
 
+
 exactly_three = exactly_n(3)
+
 
 def most_ver(seq):
     """Verifies whether |A cap B| > |A - B|
@@ -265,9 +288,11 @@ def most_ver(seq):
             diff -= 1
     return Quantifier.T if diff > 0 else Quantifier.F
 
+
 most = Quantifier("most",
         isom=True, cons=True, lcons=False, rmon=True, lmon=None,
         fn=most_ver)
+
 
 def first_n_ver(seq, n):
     """Verifies whether the first n As are also Bs.
@@ -279,7 +304,7 @@ def first_n_ver(seq, n):
     Returns:
         Quantifier.T iff the first three elements of seq that are either
         Quantifier.AB or Quantifier.AnotB are in fact Quantifier.AB.
-        Quantifier.F if either seq has length less than n or there are 
+        Quantifier.F if either seq has length less than n or there are
         fewer than n Quantifier.ABs in seq.
     """
     # TODO: more complicated presupposition handling instead of just false?
@@ -299,6 +324,7 @@ def first_n_ver(seq, n):
     # there are less than n ABs in total
     return Quantifier.F
 
+
 def first_n(n):
     """Generates a Quantifier corresponding to `the first n'.
 
@@ -312,17 +338,20 @@ def first_n(n):
             isom=False, cons=True, lcons=False, rmon=True, lmon=None,
             fn=lambda seq: first_n_ver(seq, n))
 
+
 first_three = first_n(3)
 
+
 def equal_number_ver(seq):
-    """Generates a Quantifier corresponding to `the number of As equals the number of Bs'.
+    """Generates a Quantifier corresponding to
+    `the number of As equals the number of Bs'.
 
     Args:
         seq: sequence of elts of R^4
 
     Returns:
-        Quantifier.T iff the number of Quantifier.ABs plus Quantifier.AnotBs is the same as 
-        the number of Quanitifer.BnotAs plus Quantifier.ABs
+        Quantifier.T iff the number of Quantifier.ABs plus Quantifier.AnotBs is
+        the same as the number of Quanitifer.BnotAs plus Quantifier.ABs
     """
     num_AB, num_AnotB, num_BnotA = 0, 0, 0
     for item in seq:
@@ -334,14 +363,18 @@ def equal_number_ver(seq):
             num_BnotA += 1
     return Quantifier.T if num_AnotB == num_BnotA else Quantifier.F
 
+
 equal_number = Quantifier("equal number",
         isom=True, cons=False, lcons=False, rmon=None, lmon=None,
         fn=equal_number_ver)
 
+
 def get_all_quantifiers():
     """Returns: a list of all Quantifiers that have been created so far.
     """
-    return [quant for quant in gc.get_objects() if isinstance(quant, Quantifier)]
+    return [quant for quant in gc.get_objects()
+            if isinstance(quant, Quantifier)]
+
 
 def get_nonparity_quantifiers():
 
