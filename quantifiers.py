@@ -236,6 +236,40 @@ some = at_least_n(1)
 at_least_three = at_least_n(3)
 
 
+def at_most_n_ver(seq, n):
+    """Verifies whether |A cap B| <= n.
+
+    Args:
+        seq: a sequence of elements from R^4
+        n: an integer
+
+    Returns:
+        Quantifier.T iff exactly n elements are Quantifier.AB
+    """
+    num_AB = 0
+    for item in seq:
+        if np.array_equal(item, Quantifier.AB):
+            if num_AB == n:
+                return Quantifier.F
+            else:
+                num_AB += 1
+    return Quantifier.T
+
+
+def at_most_n(n):
+    """Generates a Quantifier corresponding to at most n.
+
+    Args:
+        n: integer
+
+    Returns:
+        Quantifier, with at_most_n_ver(_, n) as its verifier
+    """
+    return Quantifier("at most {}".format(n),
+            isom=True, cons=True, lcons=True, rmon=False, lmon=False,
+            fn=lambda seq: at_most_n_ver(seq, n))
+
+
 def exactly_n_ver(seq, n):
     """Verifies whether |A cap B| = n.
 

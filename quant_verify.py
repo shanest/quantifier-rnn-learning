@@ -39,17 +39,18 @@ def length(data):
     return length
 
 
-def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
+def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
+        stop_loss=0.005):
 
     with tf.Session() as sess:
 
         # BUILD GRAPH
 
-        # one
+        # how big each input will be
         num_quants = len(eparams['quantifiers'])
         item_size = quantifiers.Quantifier.num_chars + num_quants
 
-        # -- input_models: [batch_size, max_len, num_chars]
+        # -- input_models: [batch_size, max_len, item_size]
         input_models = tf.placeholder(tf.float32,
                 [None, hparams['max_len'], item_size])
         # -- input_labels: [batch_size, num_classes]
@@ -101,7 +102,8 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
         # -- correct_prediction: [batch_size]
         correct_prediction = tf.equal(prediction, target)
         accuracy = tf.reduce_mean(tf.to_float(correct_prediction))
-        tf.summary.scalar('total accuracy', accuracy)
+        tf.summary.scalar('trial {} total accuracy'.format(trial_num),
+                accuracy)
 
         # accuracies by quantifier
         # -- flat_inputs: [batch_size * max_len, item_size]
@@ -133,7 +135,8 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
                         tf.equal(
                             prediction_by_quant[idx], target_by_quant[idx]))))
             tf.summary.scalar(
-                    '{} accuracy'.format(eparams['quantifiers'][idx]._name),
+                    '{} trial {} accuracy'.format(
+                        eparams['quantifiers'][idx]._name, trial_num),
                     quant_accs[idx])
             _, _, label_counts = tf.unique_with_counts(target_by_quant[idx])
             quant_label_dists.append(label_counts)
@@ -144,7 +147,7 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
                 logits=logits)
         # -- total_loss: scalar
         total_loss = tf.reduce_mean(loss)
-        tf.summary.scalar('loss', total_loss)
+        tf.summary.scalar('trial {} loss'.format(trial_num), total_loss)
 
         # training op
         # TODO: try different optimizers, parameters for it, etc
@@ -171,6 +174,8 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
         sess.run(tf.local_variables_initializer())
 
         # TODO: document this and section above that generates the ops
+        # measures percentage of models with the same truth value
+        # for every quantifier
         label_dists = sess.run(quant_label_dists, {input_models: test_models,
             input_labels: test_labels})
         for idx in range(len(label_dists)):
@@ -200,12 +205,16 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
                             input_labels: batch_labels})
 
                 if batch_idx % 10 == 0:
-                    summary, acc = sess.run([summaries, accuracy],
+                    summary, acc, loss = sess.run([summaries, accuracy, total_loss],
                             {input_models: test_models,
                                 input_labels: test_labels})
                     test_writer.add_summary(summary,
                             batch_idx + num_batches*epoch_idx)
                     print 'Accuracy at step {}: {}'.format(batch_idx, acc)
+
+                    # END TRAINING
+                    if loss < stop_loss:
+                        return
 
             epoch_loss, epoch_accuracy = sess.run(
                     [total_loss, accuracy],
@@ -216,9 +225,17 @@ def run_experiment(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
 
 
 # RUN AN EXPERIMENT
-run_experiment(
+def experiment_one(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
+
+    num_trials = 20
+    for idx in range(num_trials):
+        run_trial(eparams, hparams, idx, write_dir)
+
+
+experiment_one(
         {'num_epochs': 4, 'batch_size': 8,
-            'quantifiers': [quantifiers.at_least_n(4), quantifiers.exactly_n(4)],
+            'quantifiers': [quantifiers.at_least_n(4),
+                quantifiers.at_most_n(4), quantifiers.exactly_n(4)],
             'generator_mode': 'g', 'num_data': 200000},
-        {'hidden_size': 16, 'num_layers': 1, 'max_len': 20, 'num_classes': 2},
+        {'hidden_size': 24, 'num_layers': 1, 'max_len': 20, 'num_classes': 2},
 )
