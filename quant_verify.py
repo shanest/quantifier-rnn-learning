@@ -14,7 +14,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
-
 import tensorflow as tf
 
 import data_gen
@@ -40,7 +39,9 @@ def length(data):
 
 
 def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
-        stop_loss=0.005):
+        stop_loss=0.01):
+
+    tf.reset_default_graph()
 
     with tf.Session() as sess:
 
@@ -173,6 +174,8 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
 
+        accuracies = []
+
         # TODO: document this and section above that generates the ops
         # measures percentage of models with the same truth value
         # for every quantifier
@@ -210,11 +213,18 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                                 input_labels: test_labels})
                     test_writer.add_summary(summary,
                             batch_idx + num_batches*epoch_idx)
+                    accuracies.append(acc)
                     print 'Accuracy at step {}: {}'.format(batch_idx, acc)
 
                     # END TRAINING
+                    # 1) very low loss, 2) accuracy convergence
                     if loss < stop_loss:
                         return
+                    if batch_idx > 500:
+                        recent_accs = accuracies[-500:]
+                        recent_avg = sum(recent_accs) / len(recent_accs)
+                        if recent_avg > 0.99:
+                            return
 
             epoch_loss, epoch_accuracy = sess.run(
                     [total_loss, accuracy],
@@ -233,7 +243,7 @@ def experiment_one(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
 
 
 experiment_one(
-        {'num_epochs': 4, 'batch_size': 8,
+        {'num_epochs': 2, 'batch_size': 8,
             'quantifiers': [quantifiers.at_least_n(4),
                 quantifiers.at_most_n(4), quantifiers.exactly_n(4)],
             'generator_mode': 'g', 'num_data': 200000},
