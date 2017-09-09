@@ -43,7 +43,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
 
     tf.reset_default_graph()
 
-    with tf.Session() as sess:
+    with tf.Session() as sess, tf.variable_scope('trial_' + str(trial_num)) as scope:
 
         # BUILD GRAPH
 
@@ -103,8 +103,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         # -- correct_prediction: [batch_size]
         correct_prediction = tf.equal(prediction, target)
         accuracy = tf.reduce_mean(tf.to_float(correct_prediction))
-        tf.summary.scalar('trial {} total accuracy'.format(trial_num),
-                accuracy)
+        tf.summary.scalar('total accuracy', accuracy)
 
         # accuracies by quantifier
         # -- flat_inputs: [batch_size * max_len, item_size]
@@ -136,8 +135,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                         tf.equal(
                             prediction_by_quant[idx], target_by_quant[idx]))))
             tf.summary.scalar(
-                    'trial {} {} accuracy'.format(
-                        trial_num, eparams['quantifiers'][idx]._name),
+                    '{} accuracy'.format(eparams['quantifiers'][idx]._name),
                     quant_accs[idx])
             _, _, label_counts = tf.unique_with_counts(target_by_quant[idx])
             quant_label_dists.append(label_counts)
@@ -148,7 +146,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                 logits=logits)
         # -- total_loss: scalar
         total_loss = tf.reduce_mean(loss)
-        tf.summary.scalar('trial {} loss'.format(trial_num), total_loss)
+        tf.summary.scalar('loss', total_loss)
 
         # training op
         # TODO: try different optimizers, parameters for it, etc
@@ -215,14 +213,16 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                             batch_idx + num_batches*epoch_idx)
                     accuracies.append(acc)
                     print 'Accuracy at step {}: {}'.format(batch_idx, acc)
+                    print loss
 
                     # END TRAINING
                     # 1) very low loss, 2) accuracy convergence
                     if loss < stop_loss:
                         return
-                    if batch_idx > 500:
+                    if batch_idx > 500 or epoch_idx > 0:
                         recent_accs = accuracies[-500:]
                         recent_avg = sum(recent_accs) / len(recent_accs)
+                        print recent_avg
                         if recent_avg > 0.99:
                             return
 
@@ -235,17 +235,18 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
 
 
 # RUN AN EXPERIMENT
-def experiment_one(eparams, hparams, write_dir='/tmp/tensorflow/quantexp'):
+def experiment_one(write_dir='/tmp/tensorflow/quantexp'):
 
+    eparams = {'num_epochs': 2, 'batch_size': 8,
+            'quantifiers': [quantifiers.at_least_n(4),
+                quantifiers.at_most_n(4), quantifiers.exactly_n(4)],
+            'generator_mode': 'g', 'num_data': 100000}
+    hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
+            'num_classes': 2}
     num_trials = 20
+
     for idx in range(num_trials):
         run_trial(eparams, hparams, idx, write_dir)
 
 
-experiment_one(
-        {'num_epochs': 2, 'batch_size': 8,
-            'quantifiers': [quantifiers.at_least_n(4),
-                quantifiers.at_most_n(4), quantifiers.exactly_n(4)],
-            'generator_mode': 'g', 'num_data': 200000},
-        {'hidden_size': 24, 'num_layers': 1, 'max_len': 20, 'num_classes': 2},
-)
+experiment_one('data/exp1')
