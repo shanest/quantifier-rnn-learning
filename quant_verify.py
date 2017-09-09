@@ -136,8 +136,8 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                         tf.equal(
                             prediction_by_quant[idx], target_by_quant[idx]))))
             tf.summary.scalar(
-                    '{} trial {} accuracy'.format(
-                        eparams['quantifiers'][idx]._name, trial_num),
+                    'trial {} {} accuracy'.format(
+                        trial_num, eparams['quantifiers'][idx]._name),
                     quant_accs[idx])
             _, _, label_counts = tf.unique_with_counts(target_by_quant[idx])
             quant_label_dists.append(label_counts)
