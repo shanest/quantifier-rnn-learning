@@ -213,7 +213,6 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                             batch_idx + num_batches*epoch_idx)
                     accuracies.append(acc)
                     print 'Accuracy at step {}: {}'.format(batch_idx, acc)
-                    print loss
 
                     # END TRAINING
                     # 1) very low loss, 2) accuracy convergence
@@ -222,7 +221,6 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                     if batch_idx > 500 or epoch_idx > 0:
                         recent_accs = accuracies[-500:]
                         recent_avg = sum(recent_accs) / len(recent_accs)
-                        print recent_avg
                         if recent_avg > 0.99:
                             return
 
@@ -235,7 +233,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
 
 
 # RUN AN EXPERIMENT
-def experiment_one(write_dir='/tmp/tensorflow/quantexp'):
+def experiment_one(write_dir='data/exp1'):
 
     eparams = {'num_epochs': 2, 'batch_size': 8,
             'quantifiers': [quantifiers.at_least_n(4),
@@ -243,10 +241,7 @@ def experiment_one(write_dir='/tmp/tensorflow/quantexp'):
             'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
             'num_classes': 2}
-    num_trials = 20
+    num_trials = 30
 
     for idx in range(num_trials):
         run_trial(eparams, hparams, idx, write_dir)
-
-
-experiment_one('data/exp1')

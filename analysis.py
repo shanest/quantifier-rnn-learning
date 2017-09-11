@@ -22,7 +22,7 @@ import util
 
 def experiment_one_analysis(path='data/exp1'):
 
-    EXP1_TRIALS = range(20)
+    EXP1_TRIALS = range(30)
     EXP1_QUANTS = ['at_least_4', 'at_most_4', 'exactly_4']
 
     # read the data in
@@ -35,6 +35,7 @@ def experiment_one_analysis(path='data/exp1'):
     # a trial is bad if the forward mean never hit 0.99
     bad_trials = [idx for idx, threshold in enumerate(threshold_pos)
             if threshold is None]
+    print 'Number of bad trials: {}'.format(len(bad_trials))
     for trial in bad_trials:
         del data[trial]
 
@@ -46,10 +47,9 @@ def experiment_one_analysis(path='data/exp1'):
                     data[trial]['steps'][
                         convergence_point(
                             data[trial][quant + '_accuracy'].values)])
-    print convergence_points
     # test if means are equal
     print stats.f_oneway(*[convergence_points[q] for q in EXP1_QUANTS])
-    # TODO: related? equiv to take differences, then one-sample t
+    # related samples t-test; equiv to take differences, then one-sample t
     print stats.ttest_rel(convergence_points['at_least_4'], convergence_points['exactly_4'])
     print stats.ttest_rel(convergence_points['at_least_4'], convergence_points['at_most_4'])
     print stats.ttest_rel(convergence_points['at_most_4'], convergence_points['exactly_4'])
@@ -75,6 +75,3 @@ def first_above_threshold(arr, threshold=0.99):
 
 def convergence_point(arr, threshold=0.99):
     return first_above_threshold(forward_means(arr), threshold)
-
-
-experiment_one_analysis()
