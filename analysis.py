@@ -27,8 +27,36 @@ def experiment_one_analysis(path='data/exp1'):
 
     # read the data in
     data = util.read_trials_from_csv(path, EXP1_TRIALS)
-
     # FILTER OUT TRIALS WHERE RNN DID NOT LEARN
+    remove_bad_trials(data)
+    # get convergence points per quantifier
+    convergence_points = get_convergence_points(data, EXP1_QUANTS)
+
+    # test if means are equal
+    print stats.f_oneway(*[convergence_points[q] for q in EXP1_QUANTS])
+    # related samples t-test; equiv to take differences, then one-sample t
+    print stats.ttest_rel(convergence_points['at_least_4'], convergence_points['exactly_4'])
+    print stats.ttest_rel(convergence_points['at_least_4'], convergence_points['at_most_4'])
+    print stats.ttest_rel(convergence_points['at_most_4'], convergence_points['exactly_4'])
+
+
+def experiment_two_analysis(path='data/exp2'):
+
+    EXP2_TRIALS = range(30)
+    EXP2_QUANTS = ['not_all', 'not_only']
+
+    # read the data in
+    data = util.read_trials_from_csv(path, EXP2_TRIALS)
+    # FILTER OUT TRIALS WHERE RNN DID NOT LEARN
+    remove_bad_trials(data)
+    # get convergence points per quantifier
+    convergence_points = get_convergence_points(data, EXP2_QUANTS)
+
+    # test if means are equal
+    print stats.ttest_rel(convergence_points['not_only'], convergence_points['not_all'])
+
+
+def remove_bad_trials(data):
     accuracies = [data[key]['total_accuracy'].values for key in data.keys()]
     forward_accs = [forward_means(accs) for accs in accuracies]
     threshold_pos = [first_above_threshold(accs) for accs in forward_accs]
@@ -39,20 +67,16 @@ def experiment_one_analysis(path='data/exp1'):
     for trial in bad_trials:
         del data[trial]
 
-    # get convergence points per quantifier
-    convergence_points = {q: [] for q in EXP1_QUANTS}
+
+def get_convergence_points(data, quants):
+    convergence_points = {q: [] for q in quants}
     for trial in data.keys():
-        for quant in EXP1_QUANTS:
+        for quant in quants:
             convergence_points[quant].append(
                     data[trial]['steps'][
                         convergence_point(
                             data[trial][quant + '_accuracy'].values)])
-    # test if means are equal
-    print stats.f_oneway(*[convergence_points[q] for q in EXP1_QUANTS])
-    # related samples t-test; equiv to take differences, then one-sample t
-    print stats.ttest_rel(convergence_points['at_least_4'], convergence_points['exactly_4'])
-    print stats.ttest_rel(convergence_points['at_least_4'], convergence_points['at_most_4'])
-    print stats.ttest_rel(convergence_points['at_most_4'], convergence_points['exactly_4'])
+    return convergence_points
 
 
 def diff(ls1, ls2):

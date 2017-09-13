@@ -245,3 +245,16 @@ def experiment_one(write_dir='data/exp1'):
 
     for idx in range(num_trials):
         run_trial(eparams, hparams, idx, write_dir)
+
+
+def experiment_two(write_dir='data/exp2'):
+
+    eparams = {'num_epochs': 2, 'batch_size': 8,
+            'quantifiers': [quantifiers.nall, quantifiers.notonly],
+            'generator_mode': 'g', 'num_data': 100000}
+    hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
+            'num_classes': 2}
+    num_trials = 30
+
+    for idx in range(num_trials):
+        run_trial(eparams, hparams, idx, write_dir)
