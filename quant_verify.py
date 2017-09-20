@@ -172,7 +172,6 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
 
-        accuracies = []
 
         # TODO: document this and section above that generates the ops
         # measures percentage of models with the same truth value
@@ -184,6 +183,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                     float(max(label_dists[idx])) / sum(label_dists[idx]))
 
         batch_size = eparams['batch_size']
+        accuracies = []
 
         for epoch_idx in range(eparams['num_epochs']):
 
@@ -248,6 +248,20 @@ def experiment_one(write_dir='data/exp1'):
 
 
 def experiment_two(write_dir='data/exp2'):
+
+    eparams = {'num_epochs': 2, 'batch_size': 8,
+            'quantifiers': [quantifiers.first_n(3),
+                quantifiers.at_least_n(3)],
+            'generator_mode': 'g', 'num_data': 100000}
+    hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
+            'num_classes': 2}
+    num_trials = 30
+
+    for idx in range(num_trials):
+        run_trial(eparams, hparams, idx, write_dir)
+
+
+def experiment_three(write_dir='data/exp3'):
 
     eparams = {'num_epochs': 2, 'batch_size': 8,
             'quantifiers': [quantifiers.nall, quantifiers.notonly],
