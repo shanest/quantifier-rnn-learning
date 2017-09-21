@@ -19,7 +19,6 @@ import numpy as np
 import scipy.stats as stats
 from matplotlib import pyplot as plt
 import util
-# TODO: document
 
 
 COLORS = ['red', 'green', 'blue']
