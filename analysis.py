@@ -19,14 +19,19 @@ import numpy as np
 import scipy.stats as stats
 from matplotlib import pyplot as plt
 import util
-# TODO: plots
+# TODO: document
 
 
 COLORS = ['red', 'green', 'blue']
 
 
 def experiment_one_analysis(path='data/exp1', plots=True):
+    """Prints statistical tests and makes plots for experiment one.
 
+    Args:
+        path: where the trials in CSV are
+        plots: whether to make plots or not
+    """
     EXP1_TRIALS = range(30)
     EXP1_QUANTS = ['at_least_4', 'at_most_4', 'exactly_4']
 
@@ -52,6 +57,12 @@ def experiment_one_analysis(path='data/exp1', plots=True):
 
 
 def experiment_two_analysis(path='data/exp2', plots=True):
+    """Prints statistical tests and makes plots for experiment two.
+
+    Args:
+        path: where the trials in CSV are
+        plots: whether to make plots or not
+    """
 
     EXP2_TRIALS = range(30)
     EXP2_QUANTS = ['at_least_3', 'first_3']
@@ -74,6 +85,12 @@ def experiment_two_analysis(path='data/exp2', plots=True):
 
 
 def experiment_three_analysis(path='data/exp3', plots=True):
+    """Prints statistical tests and makes plots for experiment three.
+
+    Args:
+        path: where the trials in CSV are
+        plots: whether to make plots or not
+    """
 
     EXP3_TRIALS = range(30)
     EXP3_QUANTS = ['not_all', 'not_only']
@@ -96,6 +113,10 @@ def experiment_three_analysis(path='data/exp3', plots=True):
 
 
 def remove_bad_trials(data):
+    """Remove 'bad' trials from a data set.  A trial is bad if the total
+    accuracy never converged to a value close to 1.  The bad trials are
+    deleted from data, but nothing is returned.
+    """
     accuracies = [data[key]['total_accuracy'].values for key in data.keys()]
     forward_accs = [forward_means(accs) for accs in accuracies]
     threshold_pos = [first_above_threshold(accs) for accs in forward_accs]
@@ -108,6 +129,16 @@ def remove_bad_trials(data):
 
 
 def get_convergence_points(data, quants):
+    """Get convergence points by quantifier for the data.
+
+    Args:
+        data: a dictionary, intended to be made by util.read_trials_from_csv
+        quants: list of quantifier names
+
+    Returns:
+        a dictionary, with keys the quantifier names, and values the list of
+        the step at which accuracy on that quantifier converged on each trial.
+    """
     convergence_points = {q: [] for q in quants}
     for trial in data.keys():
         for quant in quants:
@@ -119,17 +150,43 @@ def get_convergence_points(data, quants):
 
 
 def diff(ls1, ls2):
+    """List difference function.
+
+    Args:
+        ls1: first list
+        ls2: second list
+
+    Returns:
+        pointwise difference ls1 - ls2
+    """
     assert len(ls1) == len(ls2)
     return [ls1[i] - ls2[i] for i in range(len(ls1))]
 
 
 def forward_means(arr):
+    """Get the forward means of a list. The forward mean at index i is
+    the sum of all the elements from i until the end of the list, divided
+    by the number of such elements.
 
+    Args:
+        arr: the list to get means of
+
+    Returns:
+        a list, of same length as arr, with the forward means
+    """
     return [sum(arr[idx:]) / (len(arr) - idx) for idx in range(len(arr))]
 
 
 def first_above_threshold(arr, threshold=0.98):
+    """Return the point at which a list value is above a threshold.
 
+    Args:
+        arr: the list
+        threshold: the threshold
+
+    Returns:
+        the first i such that arr[i] > threshold, or None if there is not one
+    """
     for idx in range(len(arr)):
         if arr[idx] > threshold:
             return idx
@@ -137,11 +194,27 @@ def first_above_threshold(arr, threshold=0.98):
 
 
 def convergence_point(arr, threshold=0.98):
+    """Get the point at which a list converges above a threshold.
+
+    Args:
+        arr: the list
+        threshold: the threshold
+
+    Returns:
+        the first i such that forward_means(arr)[i] is above threshold
+    """
     return first_above_threshold(forward_means(arr), threshold)
 
 
 def make_plot(data, quants, ylim=None):
+    """Makes a line plot of the accuracy of trials by quantifier, color coded,
+    and with the medians also plotted.
 
+    Args:
+        data: the data
+        quants: list of quantifier names
+        ylim: y-axis boundaries
+    """
     assert len(quants) <= len(COLORS)
 
     trials_by_quant = [[] for _ in range(len(quants))]
@@ -172,7 +245,17 @@ def make_plot(data, quants, ylim=None):
 
 
 def get_median_diff_lengths(trials):
+    """Get the point-wise median of a list of lists of possibly
+    different lengths.
 
+    Args:
+        trials: a list of lists, corresponding to trials
+
+    Returns:
+        a list, of the same length as the longest list in trials,
+        where the list at index i contains the median of all of the
+        lists in trials that are at least i long
+    """
     max_len = np.max([len(trial) for trial in trials])
     # pad trials with NaN values to length of longest trial
     trials = np.asarray(
@@ -183,14 +266,24 @@ def get_median_diff_lengths(trials):
 
 
 def make_boxplots(convergence_points, quants):
+    """Makes box plots of some data.
 
+    Args:
+        convergence_points: dictionary of quantifier convergence points
+        quants: names of quantifiers
+    """
     plt.boxplot([convergence_points[quant] for quant in quants])
     plt.xticks(range(1, len(quants)+1), quants)
     plt.show()
 
 
 def make_barplots(convergence_points, quants):
+    """Makes bar plots, with confidence intervals, of some data.
 
+    Args:
+        convergence_points: dictionary of quantifier convergence points
+        quants: names of quantifiers
+    """
     means = {quant: np.mean(convergence_points[quant]) for quant in quants}
     stds = {quant: np.std(convergence_points[quant]) for quant in quants}
     intervals = {quant: stats.norm.interval(0.95,
@@ -214,12 +307,19 @@ def make_barplots(convergence_points, quants):
 
 
 def smooth_data(data, smooth_weight=0.9):
+    """Smooths out a series of data which might otherwise be choppy.
+
+    Args:
+        data: a line to smooth out
+        smooth_weight: between 0 and 1, for 0 being no change and
+            1 a flat line.  Higher values are smoother curves.
+
+    Returns:
+        a list of the same length as data, containing the smooth version.
+    """
     prev = data[0]
     smoothed = []
     for pt in data:
         smoothed.append(prev*smooth_weight + pt*(1-smooth_weight))
         prev = smoothed[-1]
     return smoothed
-
-
-experiment_two_analysis()
