@@ -304,6 +304,37 @@ def exactly_n(n):
 exactly_three = exactly_n(3)
 
 
+def all_but_n_ver(seq, n):
+    """Verifies whether |A - B| = 4.
+
+    Args:
+        seq: a sequence of elements from R^4
+        n: an integer
+
+    Returns:
+        Quantifier.T iff exactly n elements are Quantifier.AnotB
+    """
+    num_AnotB = 0
+    for item in seq:
+        if np.array_equal(item, Quantifier.AnotB):
+            num_AnotB += 1
+    return Quantifier.T if num_AnotB == n else Quantifier.F
+
+
+def all_but_n(n):
+    """Generates a Quantifier corresponding to all but n.
+
+    Args:
+        n: integer
+
+    Returns:
+        Quantifier, with all_but_n_ver(_, n) as its verifier
+    """
+    return Quantifier("all but {}".format(n),
+            isom=True, cons=True, lcons=False, rmon=None, lmon=None,
+            fn=lambda seq: all_but_n_ver(seq, n))
+
+
 def most_ver(seq):
     """Verifies whether |A cap B| > |A - B|
 
