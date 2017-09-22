@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 import numpy as np
 import scipy.stats as stats
+import itertools as it
 from matplotlib import pyplot as plt
 import util
 
@@ -283,25 +284,29 @@ def make_barplots(convergence_points, quants):
         convergence_points: dictionary of quantifier convergence points
         quants: names of quantifiers
     """
-    means = {quant: np.mean(convergence_points[quant]) for quant in quants}
-    stds = {quant: np.std(convergence_points[quant]) for quant in quants}
-    intervals = {quant: stats.norm.interval(0.95,
-        loc=means[quant],
-        scale=stds[quant]/np.sqrt(len(convergence_points[quant])))
-        for quant in quants}
+    pairs = list(it.combinations(quants, 2))
+    assert len(pairs) <= len(COLORS)
+
+    diffs = {pair: diff(convergence_points[pair[0]], convergence_points[pair[1]])
+            for pair in pairs}
+    means = {pair: np.mean(diffs[pair]) for pair in pairs}
+    stds = {pair: np.std(diffs[pair]) for pair in pairs}
+    intervals = {pair: stats.norm.interval(0.95,
+        loc=means[pair],
+        scale=stds[pair]/np.sqrt(len(diffs[pair])))
+        for pair in pairs}
 
     # plotting info
-    index = np.arange(len(quants))
+    index = np.arange(len(pairs))
     bar_width = 0.75
     #reshape intervals to be fed to pyplot
-    yerrs = [[means[quant] - intervals[quant][0] for quant in quants],
-            [intervals[quant][1] - means[quant] for quant in quants]]
+    yerrs = [[means[pair] - intervals[pair][0] for pair in pairs],
+            [intervals[pair][1] - means[pair] for pair in pairs]]
 
-    plt.bar(index, [means[quant] for quant in quants], bar_width, yerr=yerrs,
-            color=[COLORS[idx] for idx in range(len(quants))],
+    plt.bar(index, [means[pair] for pair in pairs], bar_width, yerr=yerrs,
+            color=[COLORS[idx] for idx in range(len(pairs))],
             ecolor='black', align='center')
-    plt.xticks(index, quants)
-    plt.ylim(ymin=0)
+    plt.xticks(index, pairs)
     plt.show()
 
 
