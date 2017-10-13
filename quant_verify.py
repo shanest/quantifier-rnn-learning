@@ -105,7 +105,15 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         accuracy = tf.reduce_mean(tf.to_float(correct_prediction))
         tf.summary.scalar('total accuracy', accuracy)
 
-        # accuracies by quantifier
+        # -- loss: [batch_size]
+        loss = tf.nn.softmax_cross_entropy_with_logits(
+                labels=input_labels,
+                logits=logits)
+        # -- total_loss: scalar
+        total_loss = tf.reduce_mean(loss)
+        tf.summary.scalar('loss', total_loss)
+
+        # metrics by quantifier
         # -- flat_inputs: [batch_size * max_len, item_size]
         flat_input = tf.reshape(input_models, [-1, item_size])
         # -- final_inputs: [batch_size, item_size]
@@ -125,28 +133,30 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         # -- target_by_quant[i]: Tensor containing true for quantifier i
         target_by_quant = tf.dynamic_partition(
                 target, quant_indices, num_quants)
+        # -- loss_by_quant: a list num_quants long
+        # -- loss_by_quant[i]: Tensor containing loss for quantifier i
+        loss_by_quant = tf.dynamic_partition(
+                loss, quant_indices, num_quants)
 
         quant_accs = []
         quant_label_dists = []
+        quant_loss = []
         for idx in range(num_quants):
             # -- quant_accs[idx]: accuracy for each quantifier
             quant_accs.append(
                     tf.reduce_mean(tf.to_float(
                         tf.equal(
                             prediction_by_quant[idx], target_by_quant[idx]))))
+            quant_loss.append(
+                    tf.reduce_mean(loss_by_quant[idx]))
             tf.summary.scalar(
                     '{} accuracy'.format(eparams['quantifiers'][idx]._name),
                     quant_accs[idx])
+            tf.summary.scalar(
+                    '{} loss'.format(eparams['quantifiers'][idx]._name),
+                    quant_loss[idx])
             _, _, label_counts = tf.unique_with_counts(target_by_quant[idx])
             quant_label_dists.append(label_counts)
-
-        # -- loss: [batch_size]
-        loss = tf.nn.softmax_cross_entropy_with_logits(
-                labels=input_labels,
-                logits=logits)
-        # -- total_loss: scalar
-        total_loss = tf.reduce_mean(loss)
-        tf.summary.scalar('loss', total_loss)
 
         # training op
         # TODO: try different optimizers, parameters for it, etc
