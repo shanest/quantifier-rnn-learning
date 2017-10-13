@@ -57,7 +57,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         # -- input_labels: [batch_size, num_classes]
         input_labels = tf.placeholder(tf.float32,
                 [None, hparams['num_classes']])
-        # -- lengths: [batch_size]
+        # -- lengths: [batch_size], how long each input really is
         lengths = length(input_models)
 
         cells = []
