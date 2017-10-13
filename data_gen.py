@@ -24,13 +24,13 @@ import os
 import time
 
 from bitarray import bitarray
+from collections import defaultdict
 
 import numpy as np
 
 import quantifiers
 
 #TODO: move batching logic from quant_verify.run_experiment to here?
-#TODO: allow reading/writing data to files instead of in memory?
 #TODO: roll-back the writing to files logic?
 
 class DataGenerator(object):
@@ -134,11 +134,17 @@ class DataGenerator(object):
 
         return padded_with_quant, label
 
-    def _generate_labeled_data(self, num_data_points):
+    def _generate_labeled_data(self, num_data_points, balanced=True):
         """Generates a complete list of labeled data.  Iterates through
         _generate_sequences, calling _point_from_tuple on each tuple generated.
         At the end, the list is shuffled so that the data is in random order.
         Note that this returns the entire dataset, not split into train/test sets.
+
+        Args:
+            num_data_points: maximum possible data points to generate from
+            balanced: Boolean; if true, under-samples from dominant truth-value
+                        for each quantifier, so that data is balanced for each
+                        value by quantifier
 
         Returns:
             a list of all labeled data, in random order.
@@ -158,6 +164,9 @@ class DataGenerator(object):
             # store which data points have already been generated
             generated_idxs = bitarray(total_possible)
             to_generate = min(total_possible, num_data_points)
+            # tups: a dictionary, keys: (quant_idx, label) pairs
+            # values: sequences.  Will be used for balancing data
+            tups = defaultdict(list)
 
             while to_generate > 0:
                 # generate random tuple
@@ -167,10 +176,30 @@ class DataGenerator(object):
                 if not generated_idxs[tup_idx]:
                     generated_idxs[tup_idx] = True
                     to_generate -= 1
-                    self._labeled_data.append(
-                            self._point_from_tuple(tup) )
+                    seq, label = self._point_from_tuple(tup)
+                    if balanced:
+                        tups[(tup[1], label)].append(seq)
+                    else:
+                        self._labeled_data.append((seq, label))
 
-        #TODO: move this shuffle to the if clause?
+            if balanced:
+                # TODO: balance!
+                labels = (quantifiers.Quantifier.T, quantifiers.Quantifier.F)
+                for qidx in range(self._num_quants):
+                    # get size of smallest labeled class for this quantifier
+                    num_to_sample = min([len(tups[(qidx, label)])
+                        for label in labels])
+                    for label in labels:
+                        # randomly sample right number of sequences
+                        idxs = np.random.choice(len(tups[(qidx, label)]),
+                                num_to_sample,
+                                replace=False)
+                        # add to data
+                        for idx in np.nditer(idxs):
+                            seq = tups[(qidx, label)][idx]
+                            self._labeled_data.append(
+                                    (seq, label))
+
         np.random.shuffle(self._labeled_data)
         return self._labeled_data
 
@@ -183,7 +212,7 @@ class DataGenerator(object):
         if self._training_data is None:
             idx = int(math.ceil(self._training_split * len(self._labeled_data)))
             self._training_data = self._labeled_data[:idx]
-            
+
         np.random.shuffle(self._training_data)
         return self._training_data
 
