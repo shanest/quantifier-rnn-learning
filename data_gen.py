@@ -183,22 +183,18 @@ class DataGenerator(object):
                         self._labeled_data.append((seq, label))
 
             if balanced:
-                # TODO: balance!
-                labels = (quantifiers.Quantifier.T, quantifiers.Quantifier.F)
-                for qidx in range(self._num_quants):
-                    # get size of smallest labeled class for this quantifier
-                    num_to_sample = min([len(tups[(qidx, label)])
-                        for label in labels])
-                    for label in labels:
-                        # randomly sample right number of sequences
-                        idxs = np.random.choice(len(tups[(qidx, label)]),
-                                num_to_sample,
-                                replace=False)
-                        # add to data
-                        for idx in np.nditer(idxs):
-                            seq = tups[(qidx, label)][idx]
-                            self._labeled_data.append(
-                                    (seq, label))
+                # balance across (Q, T/F), instead of just T/F
+                num_to_sample = min([len(tups[k]) for k in tups])
+                for (qidx, label) in tups:
+                    # randomly sample right number of sequences
+                    idxs = np.random.choice(len(tups[(qidx, label)]),
+                            num_to_sample,
+                            replace=False)
+                    # add to data
+                    for idx in np.nditer(idxs):
+                        seq = tups[(qidx, label)][idx]
+                        self._labeled_data.append(
+                                (seq, label))
 
         np.random.shuffle(self._labeled_data)
         return self._labeled_data
