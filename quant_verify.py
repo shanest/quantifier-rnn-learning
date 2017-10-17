@@ -64,7 +64,9 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         for _ in range(hparams['num_layers']):
             # TODO: consider other RNN cells?
             cell = tf.contrib.rnn.LSTMCell(hparams['hidden_size'])
-            # TODO: wrap in dropout?
+            # dropout
+            cell = tf.contrib.rnn.DropoutWrapper(cell,
+                    state_keep_prob=hparams['dropout'])
             cells.append(cell)
         multi_cell = tf.contrib.rnn.MultiRNNCell(cells)
 
@@ -191,6 +193,8 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         for idx in range(len(label_dists)):
             print '{}: {}'.format(eparams['quantifiers'][idx]._name,
                     float(max(label_dists[idx])) / sum(label_dists[idx]))
+            print '{}: {}'.format(eparams['quantifiers'][idx]._name,
+                    sum(label_dists[idx]))
 
         batch_size = eparams['batch_size']
         accuracies = []
@@ -250,7 +254,7 @@ def experiment_one(write_dir='data/exp1'):
                 quantifiers.at_most_n(4), quantifiers.exactly_n(4)],
             'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
-            'num_classes': 2}
+            'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
@@ -264,7 +268,7 @@ def experiment_two(write_dir='data/exp2'):
                 quantifiers.at_least_n(3)],
             'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
-            'num_classes': 2}
+            'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
@@ -277,7 +281,7 @@ def experiment_three(write_dir='data/exp3'):
             'quantifiers': [quantifiers.nall, quantifiers.notonly],
             'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
-            'num_classes': 2}
+            'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
