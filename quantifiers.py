@@ -434,6 +434,21 @@ equal_number = Quantifier("equal number",
         fn=equal_number_ver)
 
 
+def or_ver(q1, q2, seq):
+
+    if q1(seq) == Quantifier.T or q2(seq) == Quantifier.T:
+        return Quantifier.T
+    return Quantifier.F
+
+
+def at_least_n_or_at_most_m(n, m):
+    return Quantifier("at_least_{}_or_at_most_{}".format(n, m),
+            isom=True, cons=True, lcons=False, rmon=False, lmon=False,
+            fn = lambda seq: or_ver(
+                lambda seq: at_least_n_ver(seq, n),
+                lambda seq: at_most_n_ver(seq, m), seq))
+
+
 def get_all_quantifiers():
     """Returns: a list of all Quantifiers that have been created so far.
     """
