@@ -106,6 +106,15 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         correct_prediction = tf.equal(prediction, target)
         accuracy = tf.reduce_mean(tf.to_float(correct_prediction))
         tf.summary.scalar('total accuracy', accuracy)
+        # precision, recall, F1
+        TP = tf.count_nonzero(prediction*target, dtype=tf.float32)
+        TN = tf.count_nonzero((prediction-1)*(target-1), dtype=tf.float32)
+        FP = tf.count_nonzero(prediction*(target-1), dtype=tf.float32)
+        FN = tf.count_nonzero((prediction-1)*target, dtype=tf.float32)
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        F1 = 2 * precision * recall / (precision + recall)
+        tf.summary.scalar('total F1', F1)
 
         # -- loss: [batch_size]
         loss = tf.nn.softmax_cross_entropy_with_logits(
@@ -184,7 +193,6 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
 
-
         # TODO: document this and section above that generates the ops
         # measures percentage of models with the same truth value
         # for every quantifier
@@ -232,8 +240,8 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
                     # 1) very low loss, 2) accuracy convergence
                     if loss < stop_loss:
                         return
-                    if batch_idx > 500 or epoch_idx > 0:
-                        recent_accs = accuracies[-500:]
+                    if batch_idx > 100 or epoch_idx > 0:
+                        recent_accs = accuracies[-100:]
                         recent_avg = sum(recent_accs) / len(recent_accs)
                         if recent_avg > 0.99:
                             return
@@ -249,11 +257,11 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
 # RUN AN EXPERIMENT
 def experiment_one(write_dir='data/exp1'):
 
-    eparams = {'num_epochs': 2, 'batch_size': 8,
+    eparams = {'num_epochs': 4, 'batch_size': 8,
             'quantifiers': [quantifiers.at_least_n(4),
-                quantifiers.at_most_n(4), quantifiers.exactly_n(4)],
+                quantifiers.at_least_n_or_at_most_m(6, 2)],
             'generator_mode': 'g', 'num_data': 100000}
-    hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
             'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
@@ -263,11 +271,11 @@ def experiment_one(write_dir='data/exp1'):
 
 def experiment_two(write_dir='data/exp2'):
 
-    eparams = {'num_epochs': 2, 'batch_size': 8,
+    eparams = {'num_epochs': 4, 'batch_size': 8,
             'quantifiers': [quantifiers.first_n(3),
                 quantifiers.at_least_n(3)],
             'generator_mode': 'g', 'num_data': 100000}
-    hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
             'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
@@ -277,10 +285,10 @@ def experiment_two(write_dir='data/exp2'):
 
 def experiment_three(write_dir='data/exp3'):
 
-    eparams = {'num_epochs': 2, 'batch_size': 8,
+    eparams = {'num_epochs': 4, 'batch_size': 8,
             'quantifiers': [quantifiers.nall, quantifiers.notonly],
             'generator_mode': 'g', 'num_data': 100000}
-    hparams = {'hidden_size': 24, 'num_layers': 1, 'max_len': 20,
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
             'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
