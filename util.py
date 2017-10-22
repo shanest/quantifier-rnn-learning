@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 
-from tensorflow.tensorboard.backend.event_processing \
+from tensorboard.backend.event_processing \
         import event_accumulator as ea
 import pandas as pd
 # TODO: document this!

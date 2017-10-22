@@ -22,104 +22,60 @@ from matplotlib import pyplot as plt
 import util
 
 
-COLORS = ['red', 'green', 'blue']
+COLORS = ['red', 'green']
 
 
-def experiment_one_analysis(path='data/exp1', plots=True):
+def experiment_analysis(path, quants, trials=range(30), plots=True):
     """Prints statistical tests and makes plots for experiment one.
 
     Args:
         path: where the trials in CSV are
         plots: whether to make plots or not
     """
-    EXP1_TRIALS = range(30)
-    EXP1_QUANTS = ['at_least_4', 'at_most_4', 'exactly_4']
 
     # read the data in
-    data = util.read_trials_from_csv(path, EXP1_TRIALS)
+    data = util.read_trials_from_csv(path, trials)
     # FILTER OUT TRIALS WHERE RNN DID NOT LEARN
     remove_bad_trials(data)
     # get convergence points per quantifier
-    convergence_points = get_convergence_points(data, EXP1_QUANTS)
+    convergence_points = get_convergence_points(data, quants)
 
     if plots:
         # make plots
-        make_boxplots(convergence_points, EXP1_QUANTS)
-        make_barplots(convergence_points, EXP1_QUANTS)
-        make_plot(data, EXP1_QUANTS, ylim=(0.5, 1))
+        make_boxplots(convergence_points, quants)
+        make_barplots(convergence_points, quants)
+        make_plot(data, quants, ylim=(0.5, 1))
 
-    # test if means are equal
-    print stats.f_oneway(*[convergence_points[q] for q in EXP1_QUANTS])
-    # related samples t-test; equiv to take differences, then one-sample t
-    print stats.ttest_rel(convergence_points['at_least_4'], convergence_points['exactly_4'])
-    print stats.ttest_rel(convergence_points['at_least_4'], convergence_points['at_most_4'])
-    print stats.ttest_rel(convergence_points['at_most_4'], convergence_points['exactly_4'])
+    print stats.ttest_rel(convergence_points[quants[0]],
+            convergence_points[quants[1]])
 
 
-def experiment_two_analysis(path='data/exp2', plots=True):
-    """Prints statistical tests and makes plots for experiment two.
-
-    Args:
-        path: where the trials in CSV are
-        plots: whether to make plots or not
-    """
-
-    EXP2_TRIALS = range(30)
-    EXP2_QUANTS = ['at_least_3', 'first_3']
-
-    # read the data in
-    data = util.read_trials_from_csv(path, EXP2_TRIALS)
-    # FILTER OUT TRIALS WHERE RNN DID NOT LEARN
-    remove_bad_trials(data)
-    # get convergence points per quantifier
-    convergence_points = get_convergence_points(data, EXP2_QUANTS)
-
-    if plots:
-        # make plots
-        make_boxplots(convergence_points, EXP2_QUANTS)
-        make_barplots(convergence_points, EXP2_QUANTS)
-        make_plot(data, EXP2_QUANTS, ylim=(0.5, 1))
-
-    # test if means are equal
-    print stats.ttest_rel(convergence_points['at_least_3'], convergence_points['first_3'])
+def experiment_one_a_analysis():
+    experiment_analysis('data/exp1a', ['at_least_4',
+        'at_least_6_or_at_most_2'])
 
 
-def experiment_three_analysis(path='data/exp3', plots=True):
-    """Prints statistical tests and makes plots for experiment three.
-
-    Args:
-        path: where the trials in CSV are
-        plots: whether to make plots or not
-    """
-
-    EXP3_TRIALS = range(30)
-    EXP3_QUANTS = ['not_all', 'not_only']
-
-    # read the data in
-    data = util.read_trials_from_csv(path, EXP3_TRIALS)
-    # FILTER OUT TRIALS WHERE RNN DID NOT LEARN
-    remove_bad_trials(data)
-    # get convergence points per quantifier
-    convergence_points = get_convergence_points(data, EXP3_QUANTS)
-
-    if plots:
-        # make plots
-        make_boxplots(convergence_points, EXP3_QUANTS)
-        make_barplots(convergence_points, EXP3_QUANTS)
-        make_plot(data, EXP3_QUANTS, ylim=(0.8, 1))
-
-    # test if means are equal
-    print stats.ttest_rel(convergence_points['not_only'], convergence_points['not_all'])
+def experiment_one_b_analysis():
+    experiment_analysis('data/exp1b', ['at_most_3',
+        'at_least_6_or_at_most_2'])
 
 
-def remove_bad_trials(data):
+def experiment_two_analysis():
+    experiment_analysis('data/exp2', ['at_least_3', 'first_3'])
+
+
+def experiment_three_analysis():
+    experiment_analysis('data/exp3', ['not_all', 'not_only'])
+
+
+def remove_bad_trials(data, threshold=0.97):
     """Remove 'bad' trials from a data set.  A trial is bad if the total
     accuracy never converged to a value close to 1.  The bad trials are
     deleted from data, but nothing is returned.
     """
     accuracies = [data[key]['total_accuracy'].values for key in data.keys()]
     forward_accs = [forward_means(accs) for accs in accuracies]
-    threshold_pos = [first_above_threshold(accs) for accs in forward_accs]
+    threshold_pos = [first_above_threshold(accs, threshold) for accs in forward_accs]
     # a trial is bad if the forward mean never hit 0.99
     bad_trials = [idx for idx, threshold in enumerate(threshold_pos)
             if threshold is None]
@@ -177,7 +133,7 @@ def forward_means(arr):
     return [sum(arr[idx:]) / (len(arr) - idx) for idx in range(len(arr))]
 
 
-def first_above_threshold(arr, threshold=0.98):
+def first_above_threshold(arr, threshold=0.97):
     """Return the point at which a list value is above a threshold.
 
     Args:
@@ -193,7 +149,7 @@ def first_above_threshold(arr, threshold=0.98):
     return None
 
 
-def convergence_point(arr, threshold=0.98):
+def convergence_point(arr, threshold=0.95):
     """Get the point at which a list converges above a threshold.
 
     Args:

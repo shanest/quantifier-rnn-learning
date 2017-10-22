@@ -171,7 +171,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
 
         # training op
         # TODO: try different optimizers, parameters for it, etc
-        optimizer = tf.train.AdamOptimizer()
+        optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         train_step = optimizer.minimize(total_loss)
 
         # write summary data
@@ -255,10 +255,25 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
 
 
 # RUN AN EXPERIMENT
-def experiment_one(write_dir='data/exp1'):
+
+def experiment_one_a(write_dir='data/exp1a'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
             'quantifiers': [quantifiers.at_least_n(4),
+                quantifiers.at_least_n_or_at_most_m(6, 2)],
+            'generator_mode': 'g', 'num_data': 100000}
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
+            'num_classes': 2, 'dropout': 1.0}
+    num_trials = 30
+
+    for idx in range(num_trials):
+        run_trial(eparams, hparams, idx, write_dir)
+
+
+def experiment_one_b(write_dir='data/exp1b'):
+
+    eparams = {'num_epochs': 4, 'batch_size': 8,
+            'quantifiers': [quantifiers.at_most_n(3),
                 quantifiers.at_least_n_or_at_most_m(6, 2)],
             'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
@@ -274,7 +289,7 @@ def experiment_two(write_dir='data/exp2'):
     eparams = {'num_epochs': 4, 'batch_size': 8,
             'quantifiers': [quantifiers.first_n(3),
                 quantifiers.at_least_n(3)],
-            'generator_mode': 'g', 'num_data': 100000}
+            'generator_mode': 'g', 'num_data': 200000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
             'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
@@ -287,7 +302,7 @@ def experiment_three(write_dir='data/exp3'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
             'quantifiers': [quantifiers.nall, quantifiers.notonly],
-            'generator_mode': 'g', 'num_data': 100000}
+            'generator_mode': 'g', 'num_data': 300000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
             'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
