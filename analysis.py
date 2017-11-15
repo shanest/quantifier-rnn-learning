@@ -22,7 +22,7 @@ from matplotlib import pyplot as plt
 import util
 
 
-COLORS = ['red', 'green']
+COLORS = ['blue', 'red']
 
 
 def experiment_analysis(path, quants, trials=range(30), plots=True):
@@ -44,7 +44,7 @@ def experiment_analysis(path, quants, trials=range(30), plots=True):
         # make plots
         make_boxplots(convergence_points, quants)
         make_barplots(convergence_points, quants)
-        make_plot(data, quants, ylim=(0.5, 1))
+        make_plot(data, quants, ylim=(0.8, 1))
 
     print stats.ttest_rel(convergence_points[quants[0]],
             convergence_points[quants[1]])
@@ -162,7 +162,7 @@ def convergence_point(arr, threshold=0.95):
     return first_above_threshold(forward_means(arr), threshold)
 
 
-def make_plot(data, quants, ylim=None):
+def make_plot(data, quants, ylim=None, threshold=0.95):
     """Makes a line plot of the accuracy of trials by quantifier, color coded,
     and with the medians also plotted.
 
@@ -192,6 +192,10 @@ def make_plot(data, quants, ylim=None):
                 COLORS[idx],
                 label=quants[idx],
                 linewidth=2)
+
+    max_x = max([len(ls) for ls in medians_by_quant])
+    x = range(0, 10*max_x, 10)
+    plt.plot(x, [threshold for _ in range(max_x)], linestyle='dashed', color='green')
 
     if ylim:
         plt.ylim(ylim)
