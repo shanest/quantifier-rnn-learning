@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 import tensorflow as tf
+import numpy as np
 
 import data_gen
 import quantifiers
@@ -70,7 +71,7 @@ def lstm_model_fn(features, labels, mode, params):
     # -- output: [batch_size, max_len, out_size]
     output, state = tf.nn.dynamic_rnn(
         multi_cell, input_models,
-        dtype=tf.float32, sequence_length=lengths)
+        dtype=tf.float64, sequence_length=lengths)
 
     # TODO: modify to allow prediction at every time step
 
@@ -92,18 +93,6 @@ def lstm_model_fn(features, labels, mode, params):
         inputs=final_output,
         num_outputs=params['num_classes'],
         activation_fn=None)
-    # -- probs: [batch_size, num_classes]
-    probs = tf.nn.softmax(logits)
-    # -- prediction: [batch_size]
-    prediction = tf.argmax(probs, 1)
-    # -- target: [batch_size]
-    target = tf.argmax(input_labels, 1)
-
-    # total accuracy
-    # -- correct_prediction: [batch_size]
-    correct_prediction = tf.equal(prediction, target)
-    accuracy = tf.reduce_mean(tf.to_float(correct_prediction))
-    tf.summary.scalar('total accuracy', accuracy)
 
     # -- loss: [batch_size]
     loss = tf.nn.softmax_cross_entropy_with_logits(
@@ -112,6 +101,27 @@ def lstm_model_fn(features, labels, mode, params):
     # -- total_loss: scalar
     total_loss = tf.reduce_mean(loss)
     tf.summary.scalar('loss', total_loss)
+
+    # training op
+    # TODO: try different optimizers, parameters for it, etc
+    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
+    train_op = optimizer.minimize(total_loss,
+                                  global_step=tf.train.get_global_step())
+
+    # -- probs: [batch_size, num_classes]
+    probs = tf.nn.softmax(logits)
+    # total accuracy
+    # -- prediction: [batch_size]
+    prediction = tf.argmax(probs, 1)
+    # -- target: [batch_size]
+    target = tf.argmax(input_labels, 1)
+    # -- correct_prediction: [batch_size]
+    correct_prediction = tf.equal(prediction, target)
+    accuracy = tf.reduce_mean(tf.to_float(correct_prediction))
+    tf.summary.scalar('total accuracy', accuracy)
+
+    # list of metrics for evaluation
+    eval_metrics = {'accuracy': tf.metrics.accuracy(target, prediction)}
 
     # metrics by quantifier
     # -- flat_inputs: [batch_size * max_len, item_size]
@@ -160,64 +170,65 @@ def lstm_model_fn(features, labels, mode, params):
         _, _, label_counts = tf.unique_with_counts(target_by_quant[idx])
         quant_label_dists.append(label_counts)
 
-    # training op
-    # TODO: try different optimizers, parameters for it, etc
-    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
-    train_step = optimizer.minimize(total_loss)
-
     # write summary data
-    summaries = tf.summary.merge_all()
-    test_writer = tf.summary.FileWriter(write_dir, sess.graph)
+    # summaries = tf.summary.merge_all()
+    # test_writer = tf.summary.FileWriter(write_dir, sess.graph)
 
     return tf.estimator.EstimatorSpec(
-    )
-
+        mode=mode,
+        loss=total_loss,
+        train_op=train_op,
+        predictions={'probs': probs},
+        eval_metric_ops=eval_metrics)
 
 
 def run_trial(eparams, hparams, trial_num,
               write_dir='/tmp/tensorflow/quantexp', stop_loss=0.01):
 
+    # BUILD MODEL
     model = tf.estimator.Estimator(model_fn=lstm_model_fn, params=hparams)
 
+    # GENERATE DATA
+    generator = data_gen.DataGenerator(
+            hparams['max_len'], hparams['quantifiers'],
+            mode=eparams['generator_mode'],
+            num_data_points=eparams['num_data'])
+
+    training_data = generator.get_training_data()
+    test_data = generator.get_test_data()
+
+    # TODO: document
+    def get_np_data(data):
+        x_data = np.array([datum[0] for datum in data])
+        y_data = np.array([datum[1] for datum in data])
+        return x_data, y_data
+
+    train_x, train_y = get_np_data(training_data)
+    train_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x={INPUT_FEATURE: train_x},
+        y=train_y,
+        batch_size=eparams['batch_size'],
+        num_epochs=eparams['num_epochs'],
+        shuffle=True)
+
+    test_x, test_y = get_np_data(test_data)
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x={INPUT_FEATURE: test_x},
+        y=test_y,
+        batch_size=len(test_x),
+        shuffle=False)
+
+    model.train(input_fn=train_input_fn, steps=200)
+    model.evaluate(input_fn=eval_input_fn)
+    model.train(input_fn=train_input_fn, steps=200)
+    model.evaluate(input_fn=eval_input_fn)
+
+
+"""
     tf.reset_default_graph()
 
     with tf.Session() as sess, tf.variable_scope('trial_' + str(trial_num)) as scope:
 
-
-        # GENERATE DATA
-        generator = data_gen.DataGenerator(
-                hparams['max_len'], hparams['quantifiers'],
-                mode=eparams['generator_mode'],
-                num_data_points=eparams['num_data'])
-
-        training_data = generator.get_training_data()
-        test_data = generator.get_test_data()
-
-        # TODO: document
-        def get_np_data(data):
-
-            x_data = np.array([datum[0] for datum in data])
-            y_data = np.array([datum[1] for datum in data])
-            return x_data, y_data
-
-        def training_input_fn():
-
-            x_data, y_data = get_np_data(training_data)
-            return tf.estimator.inputs.numpy_input_fn(
-                x={INPUT_FEATURE: x_data},
-                y=y_data,
-                batch_size=eparams['batch_size'],
-                num_epochs=eparams['num_epochs'],
-                shuffle=True)
-
-        def eval_input_fn():
-
-            x_data, y_data = get_np_data(test_data)
-            return tf.estimator.inputs.numpy_input_fn(
-                x={INPUT_FEATURE: x_data},
-                y=y_data,
-                batch_size=len(x_data),
-                shuffle=False)
 
         test_models = [datum[0] for datum in test_data]
         test_labels = [datum[1] for datum in test_data]
@@ -289,6 +300,7 @@ def run_trial(eparams, hparams, trial_num,
             print 'Epoch {} done'.format(epoch_idx)
             print 'Loss: {}'.format(epoch_loss)
             print 'Accuracy: {}'.format(epoch_accuracy)
+"""
 
 
 # RUN AN EXPERIMENT
