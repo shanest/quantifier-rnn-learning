@@ -38,8 +38,8 @@ def length(data):
     return length
 
 
-def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
-        stop_loss=0.01):
+def run_trial(eparams, hparams, trial_num,
+              write_dir='/tmp/tensorflow/quantexp', stop_loss=0.01):
 
     tf.reset_default_graph()
 
@@ -53,10 +53,10 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
 
         # -- input_models: [batch_size, max_len, item_size]
         input_models = tf.placeholder(tf.float32,
-                [None, hparams['max_len'], item_size])
+                                      [None, hparams['max_len'], item_size])
         # -- input_labels: [batch_size, num_classes]
         input_labels = tf.placeholder(tf.float32,
-                [None, hparams['num_classes']])
+                                      [None, hparams['num_classes']])
         # -- lengths: [batch_size], how long each input really is
         lengths = length(input_models)
 
@@ -65,15 +65,16 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
             # TODO: consider other RNN cells?
             cell = tf.contrib.rnn.LSTMCell(hparams['hidden_size'])
             # dropout
-            cell = tf.contrib.rnn.DropoutWrapper(cell,
-                    state_keep_prob=hparams['dropout'])
+            cell = tf.contrib.rnn.DropoutWrapper(
+                cell, state_keep_prob=hparams['dropout'])
             cells.append(cell)
         multi_cell = tf.contrib.rnn.MultiRNNCell(cells)
 
         # run on input
         # -- output: [batch_size, max_len, out_size]
-        output, state = tf.nn.dynamic_rnn(multi_cell,
-                input_models, dtype=tf.float32, sequence_length=lengths)
+        output, state = tf.nn.dynamic_rnn(
+            multi_cell, input_models,
+            dtype=tf.float32, sequence_length=lengths)
 
         # TODO: modify to allow prediction at every time step
 
@@ -83,7 +84,7 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         # -- indices: [batch_size]
         output_length = tf.shape(output)[0]
         indices = (tf.range(0, output_length) * hparams['max_len']
-                + (lengths - 1))
+                   + (lengths - 1))
         # -- final_output: [batch_size, out_size]
         final_output = tf.gather(flat_output, indices)
         tf.summary.histogram('final output', final_output)
@@ -132,7 +133,8 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         # extract the portion of the input corresponding to the quantifier
         # -- quants_by_seq: [batch_size, num_quants]
         quants_by_seq = tf.slice(final_inputs,
-                [0, quantifiers.Quantifier.num_chars], [-1, -1])
+                                 [0, quantifiers.Quantifier.num_chars],
+                                 [-1, -1])
         # index, in the quantifier list, of the quantifier for each data point
         # -- quant_indices: [batch_size]
         quant_indices = tf.to_int32(tf.argmax(quants_by_seq, 1))
@@ -196,13 +198,16 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
         # TODO: document this and section above that generates the ops
         # measures percentage of models with the same truth value
         # for every quantifier
-        label_dists = sess.run(quant_label_dists, {input_models: test_models,
-            input_labels: test_labels})
+        label_dists = sess.run(quant_label_dists,
+                               {input_models: test_models,
+                                input_labels: test_labels})
         for idx in range(len(label_dists)):
-            print '{}: {}'.format(eparams['quantifiers'][idx]._name,
-                    float(max(label_dists[idx])) / sum(label_dists[idx]))
-            print '{}: {}'.format(eparams['quantifiers'][idx]._name,
-                    sum(label_dists[idx]))
+            print '{}: {}'.format(
+                eparams['quantifiers'][idx]._name,
+                float(max(label_dists[idx])) / sum(label_dists[idx]))
+            print '{}: {}'.format(
+                eparams['quantifiers'][idx]._name,
+                sum(label_dists[idx]))
 
         batch_size = eparams['batch_size']
         accuracies = []
@@ -219,20 +224,20 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
             for batch_idx in range(num_batches):
 
                 batch_models = (models[batch_idx*batch_size:
-                    (batch_idx+1)*batch_size])
+                                       (batch_idx+1)*batch_size])
                 batch_labels = (labels[batch_idx*batch_size:
-                    (batch_idx+1)*batch_size])
+                                       (batch_idx+1)*batch_size])
 
                 sess.run(train_step,
-                        {input_models: batch_models,
-                            input_labels: batch_labels})
+                         {input_models: batch_models,
+                          input_labels: batch_labels})
 
                 if batch_idx % 10 == 0:
-                    summary, acc, loss = sess.run([summaries, accuracy, total_loss],
-                            {input_models: test_models,
-                                input_labels: test_labels})
+                    summary, acc, loss = sess.run(
+                        [summaries, accuracy, total_loss],
+                        {input_models: test_models, input_labels: test_labels})
                     test_writer.add_summary(summary,
-                            batch_idx + num_batches*epoch_idx)
+                                            batch_idx + num_batches*epoch_idx)
                     accuracies.append(acc)
                     print 'Accuracy at step {}: {}'.format(batch_idx, acc)
 
@@ -259,11 +264,11 @@ def run_trial(eparams, hparams, trial_num, write_dir='/tmp/tensorflow/quantexp',
 def experiment_one_a(write_dir='data/exp1a'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-            'quantifiers': [quantifiers.at_least_n(4),
-                quantifiers.at_least_n_or_at_most_m(6, 2)],
-            'generator_mode': 'g', 'num_data': 100000}
+               'quantifiers': [quantifiers.at_least_n(4),
+                               quantifiers.at_least_n_or_at_most_m(6, 2)],
+               'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
-            'num_classes': 2, 'dropout': 1.0}
+               'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
@@ -273,11 +278,11 @@ def experiment_one_a(write_dir='data/exp1a'):
 def experiment_one_b(write_dir='data/exp1b'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-            'quantifiers': [quantifiers.at_most_n(3),
-                quantifiers.at_least_n_or_at_most_m(6, 2)],
-            'generator_mode': 'g', 'num_data': 100000}
+               'quantifiers': [quantifiers.at_most_n(3),
+                               quantifiers.at_least_n_or_at_most_m(6, 2)],
+               'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
-            'num_classes': 2, 'dropout': 1.0}
+               'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
@@ -287,11 +292,11 @@ def experiment_one_b(write_dir='data/exp1b'):
 def experiment_one_c(write_dir='data/exp1c'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-            'quantifiers': [quantifiers.at_least_n(4),
-                quantifiers.between_m_and_n(6, 10)],
-            'generator_mode': 'g', 'num_data': 100000}
+               'quantifiers': [quantifiers.at_least_n(4),
+                               quantifiers.between_m_and_n(6, 10)],
+               'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
-            'num_classes': 2, 'dropout': 1.0}
+               'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
@@ -301,11 +306,11 @@ def experiment_one_c(write_dir='data/exp1c'):
 def experiment_one_d(write_dir='data/exp1d'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-            'quantifiers': [quantifiers.at_most_n(4),
-                quantifiers.between_m_and_n(6, 10)],
-            'generator_mode': 'g', 'num_data': 100000}
+               'quantifiers': [quantifiers.at_most_n(4),
+                               quantifiers.between_m_and_n(6, 10)],
+               'generator_mode': 'g', 'num_data': 100000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
-            'num_classes': 2, 'dropout': 1.0}
+               'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
@@ -315,11 +320,11 @@ def experiment_one_d(write_dir='data/exp1d'):
 def experiment_two(write_dir='data/exp2'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-            'quantifiers': [quantifiers.first_n(3),
-                quantifiers.at_least_n(3)],
-            'generator_mode': 'g', 'num_data': 200000}
+               'quantifiers': [quantifiers.first_n(3),
+                               quantifiers.at_least_n(3)],
+               'generator_mode': 'g', 'num_data': 200000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
-            'num_classes': 2, 'dropout': 1.0}
+               'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
@@ -329,10 +334,10 @@ def experiment_two(write_dir='data/exp2'):
 def experiment_three(write_dir='data/exp3'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-            'quantifiers': [quantifiers.nall, quantifiers.notonly],
-            'generator_mode': 'g', 'num_data': 300000}
+               'quantifiers': [quantifiers.nall, quantifiers.notonly],
+               'generator_mode': 'g', 'num_data': 300000}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
-            'num_classes': 2, 'dropout': 1.0}
+               'num_classes': 2, 'dropout': 1.0}
     num_trials = 30
 
     for idx in range(num_trials):
