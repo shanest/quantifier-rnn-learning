@@ -107,15 +107,6 @@ def run_trial(eparams, hparams, trial_num,
         correct_prediction = tf.equal(prediction, target)
         accuracy = tf.reduce_mean(tf.to_float(correct_prediction))
         tf.summary.scalar('total accuracy', accuracy)
-        # precision, recall, F1
-        TP = tf.count_nonzero(prediction*target, dtype=tf.float32)
-        TN = tf.count_nonzero((prediction-1)*(target-1), dtype=tf.float32)
-        FP = tf.count_nonzero(prediction*(target-1), dtype=tf.float32)
-        FN = tf.count_nonzero((prediction-1)*target, dtype=tf.float32)
-        precision = TP / (TP + FP)
-        recall = TP / (TP + FN)
-        F1 = 2 * precision * recall / (precision + recall)
-        tf.summary.scalar('total F1', F1)
 
         # -- loss: [batch_size]
         loss = tf.nn.softmax_cross_entropy_with_logits(
