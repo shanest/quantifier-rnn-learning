@@ -304,6 +304,30 @@ def exactly_n(n):
 exactly_three = exactly_n(3)
 
 
+def between_m_and_n_ver(seq, m, n):
+    """Verifies whether m <= |A cap B| <= n.
+
+    Args:
+        seq: a sequence of elements from R^4
+        m: an integer
+        n: an integer
+
+    Returns:
+        Quantifier.T iff between m and n elements are Quantifier.AB
+    """
+    num_AB = 0
+    for item in seq:
+        if np.array_equal(item, Quantifier.AB):
+            num_AB += 1
+    return Quantifier.T if (m <= num_AB and num_AB <= n) else Quantifier.F
+
+
+def between_m_and_n(m, n):
+    return Quantifier("between {} and {}".format(m,n),
+            isom=True, cons=True, lcons=True, rmon=None, lmon=None,
+            fn=lambda seq: between_m_and_n_ver(seq, m, n))
+
+
 def all_but_n_ver(seq, n):
     """Verifies whether |A - B| = 4.
 

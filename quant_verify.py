@@ -284,6 +284,34 @@ def experiment_one_b(write_dir='data/exp1b'):
         run_trial(eparams, hparams, idx, write_dir)
 
 
+def experiment_one_c(write_dir='data/exp1c'):
+
+    eparams = {'num_epochs': 4, 'batch_size': 8,
+            'quantifiers': [quantifiers.at_least_n(4),
+                quantifiers.between_m_and_n(6, 10)],
+            'generator_mode': 'g', 'num_data': 100000}
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
+            'num_classes': 2, 'dropout': 1.0}
+    num_trials = 30
+
+    for idx in range(num_trials):
+        run_trial(eparams, hparams, idx, write_dir)
+
+
+def experiment_one_d(write_dir='data/exp1d'):
+
+    eparams = {'num_epochs': 4, 'batch_size': 8,
+            'quantifiers': [quantifiers.at_most_n(4),
+                quantifiers.between_m_and_n(6, 10)],
+            'generator_mode': 'g', 'num_data': 100000}
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
+            'num_classes': 2, 'dropout': 1.0}
+    num_trials = 30
+
+    for idx in range(num_trials):
+        run_trial(eparams, hparams, idx, write_dir)
+
+
 def experiment_two(write_dir='data/exp2'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
