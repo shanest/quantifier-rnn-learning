@@ -92,7 +92,7 @@ def notall_ver(seq):
     return Quantifier.F
 
 
-nall = Quantifier("not all",
+nall = Quantifier("not_all",
         isom=True, cons=True, lcons=False, rmon=False, lmon=True,
         fn=notall_ver)
 
@@ -152,7 +152,7 @@ def notonly_ver(seq):
     return Quantifier.F
 
 
-notonly = Quantifier("not only",
+notonly = Quantifier("not_only",
         isom=True, cons=False, lcons=True, rmon=True, lmon=False,
         fn=notonly_ver)
 
@@ -227,7 +227,7 @@ def at_least_n(n):
     Returns:
         Quantifier, with at_least_n_ver(_, n) as its verifier
     """
-    return Quantifier("at least {}".format(n),
+    return Quantifier("at_least_{}".format(n),
             isom=True, cons=True, lcons=True, rmon=True, lmon=True,
             fn=lambda seq: at_least_n_ver(seq, n))
 
@@ -265,7 +265,7 @@ def at_most_n(n):
     Returns:
         Quantifier, with at_most_n_ver(_, n) as its verifier
     """
-    return Quantifier("at most {}".format(n),
+    return Quantifier("at_most_{}".format(n),
             isom=True, cons=True, lcons=True, rmon=False, lmon=False,
             fn=lambda seq: at_most_n_ver(seq, n))
 
@@ -296,7 +296,7 @@ def exactly_n(n):
     Returns:
         Quantifier, with exactly_n_ver(_, n) as its verifier
     """
-    return Quantifier("exactly {}".format(n),
+    return Quantifier("exactly_{}".format(n),
             isom=True, cons=True, lcons=True, rmon=None, lmon=None,
             fn=lambda seq: exactly_n_ver(seq, n))
 
@@ -323,7 +323,7 @@ def between_m_and_n_ver(seq, m, n):
 
 
 def between_m_and_n(m, n):
-    return Quantifier("between {} and {}".format(m,n),
+    return Quantifier("between_{}_and_{}".format(m,n),
             isom=True, cons=True, lcons=True, rmon=None, lmon=None,
             fn=lambda seq: between_m_and_n_ver(seq, m, n))
 
@@ -354,7 +354,7 @@ def all_but_n(n):
     Returns:
         Quantifier, with all_but_n_ver(_, n) as its verifier
     """
-    return Quantifier("all but {}".format(n),
+    return Quantifier("all_but_{}".format(n),
             isom=True, cons=True, lcons=False, rmon=None, lmon=None,
             fn=lambda seq: all_but_n_ver(seq, n))
 
@@ -423,7 +423,7 @@ def first_n(n):
     Returns:
         a Quantifier, with first_n_ver(_, n) as its verifier
     """
-    return Quantifier("first {}".format(n),
+    return Quantifier("first_{}".format(n),
             isom=False, cons=True, lcons=False, rmon=True, lmon=None,
             fn=lambda seq: first_n_ver(seq, n))
 
@@ -453,7 +453,7 @@ def equal_number_ver(seq):
     return Quantifier.T if num_AnotB == num_BnotA else Quantifier.F
 
 
-equal_number = Quantifier("equal number",
+equal_number = Quantifier("equal_number",
         isom=True, cons=False, lcons=False, rmon=None, lmon=None,
         fn=equal_number_ver)
 
