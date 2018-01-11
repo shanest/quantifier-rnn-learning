@@ -100,7 +100,6 @@ def lstm_model_fn(features, labels, mode, params):
             logits=logits)
     # -- total_loss: scalar
     total_loss = tf.reduce_mean(loss)
-    tf.summary.scalar('loss', total_loss)
 
     # training op
     # TODO: try different optimizers, parameters for it, etc
@@ -115,10 +114,6 @@ def lstm_model_fn(features, labels, mode, params):
     prediction = tf.argmax(probs, 1)
     # -- target: [batch_size]
     target = tf.argmax(input_labels, 1)
-    # -- correct_prediction: [batch_size]
-    correct_prediction = tf.equal(prediction, target)
-    accuracy = tf.reduce_mean(tf.to_float(correct_prediction))
-    tf.summary.scalar('total accuracy', accuracy)
 
     # list of metrics for evaluation
     eval_metrics = {'accuracy': tf.metrics.accuracy(target, prediction)}
@@ -144,35 +139,11 @@ def lstm_model_fn(features, labels, mode, params):
     # -- target_by_quant[i]: Tensor containing true for quantifier i
     target_by_quant = tf.dynamic_partition(
             target, quant_indices, num_quants)
-    # -- loss_by_quant: a list num_quants long
-    # -- loss_by_quant[i]: Tensor containing loss for quantifier i
-    loss_by_quant = tf.dynamic_partition(
-            loss, quant_indices, num_quants)
 
-    # TODO: refactor this for eval_metric_ops
-    quant_accs = []
-    quant_label_dists = []
-    quant_loss = []
-    for idx in range(num_quants):
-        # -- quant_accs[idx]: accuracy for each quantifier
-        quant_accs.append(
-                tf.reduce_mean(tf.to_float(
-                    tf.equal(
-                        prediction_by_quant[idx], target_by_quant[idx]))))
-        quant_loss.append(
-                tf.reduce_mean(loss_by_quant[idx]))
-        tf.summary.scalar(
-                '{} accuracy'.format(params['quantifiers'][idx]._name),
-                quant_accs[idx])
-        tf.summary.scalar(
-                '{} loss'.format(params['quantifiers'][idx]._name),
-                quant_loss[idx])
-        _, _, label_counts = tf.unique_with_counts(target_by_quant[idx])
-        quant_label_dists.append(label_counts)
-
-    # write summary data
-    # summaries = tf.summary.merge_all()
-    # test_writer = tf.summary.FileWriter(write_dir, sess.graph)
+    for idx in xrange(num_quants):
+        key = '{}_accuracy'.format(params['quantifiers'][idx]._name)
+        eval_metrics[key] = tf.metrics.accuracy(
+            target_by_quant[idx], prediction_by_quant[idx])
 
     return tf.estimator.EstimatorSpec(
         mode=mode,
@@ -183,16 +154,24 @@ def lstm_model_fn(features, labels, mode, params):
 
 
 def run_trial(eparams, hparams, trial_num,
-              write_dir='/tmp/tensorflow/quantexp', stop_loss=0.01):
+              write_dir='/tmp/tensorflow/quantexp'):
+
+    tf.reset_default_graph()
+
+    # TODO: model_dir based on trial number as well
+    # TODO: rewrite util.convert_trials_to_csv based on new output
 
     # BUILD MODEL
-    model = tf.estimator.Estimator(model_fn=lstm_model_fn, params=hparams)
+    model = tf.estimator.Estimator(
+        model_fn=lstm_model_fn,
+        params=hparams,
+        model_dir=write_dir)
 
     # GENERATE DATA
     generator = data_gen.DataGenerator(
-            hparams['max_len'], hparams['quantifiers'],
-            mode=eparams['generator_mode'],
-            num_data_points=eparams['num_data'])
+        hparams['max_len'], hparams['quantifiers'],
+        mode=eparams['generator_mode'],
+        num_data_points=eparams['num_data'])
 
     training_data = generator.get_training_data()
     test_data = generator.get_test_data()
@@ -203,6 +182,7 @@ def run_trial(eparams, hparams, trial_num,
         y_data = np.array([datum[1] for datum in data])
         return x_data, y_data
 
+    # input fn for training
     train_x, train_y = get_np_data(training_data)
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={INPUT_FEATURE: train_x},
@@ -211,6 +191,7 @@ def run_trial(eparams, hparams, trial_num,
         num_epochs=eparams['num_epochs'],
         shuffle=True)
 
+    # input fn for evaluation
     test_x, test_y = get_np_data(test_data)
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={INPUT_FEATURE: test_x},
@@ -218,89 +199,23 @@ def run_trial(eparams, hparams, trial_num,
         batch_size=len(test_x),
         shuffle=False)
 
-    model.train(input_fn=train_input_fn, steps=200)
-    model.evaluate(input_fn=eval_input_fn)
-    model.train(input_fn=train_input_fn, steps=200)
-    model.evaluate(input_fn=eval_input_fn)
+    # model.train(input_fn=train_input_fn, steps=200)
+    # model.evaluate(input_fn=eval_input_fn)
 
+    # TODO: bug when running this repeatedly: fails to write events in future
 
-"""
-    tf.reset_default_graph()
+    # RUN AN EXPERIMENT
+    experiment = tf.contrib.learn.Experiment(
+        model,
+        train_input_fn,
+        eval_input_fn,
+        train_steps=200,
+        train_steps_per_iteration=50,
+        eval_steps=None)
 
-    with tf.Session() as sess, tf.variable_scope('trial_' + str(trial_num)) as scope:
+    experiment.continuous_train_and_eval()
 
-
-        test_models = [datum[0] for datum in test_data]
-        test_labels = [datum[1] for datum in test_data]
-
-        # TRAIN
-
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())
-
-        # TODO: document this and section above that generates the ops
-        # measures percentage of models with the same truth value
-        # for every quantifier
-        label_dists = sess.run(quant_label_dists,
-                               {input_models: test_models,
-                                input_labels: test_labels})
-        for idx in range(len(label_dists)):
-            print '{}: {}'.format(
-                eparams['quantifiers'][idx]._name,
-                float(max(label_dists[idx])) / sum(label_dists[idx]))
-            print '{}: {}'.format(
-                eparams['quantifiers'][idx]._name,
-                sum(label_dists[idx]))
-
-        batch_size = eparams['batch_size']
-        accuracies = []
-
-        for epoch_idx in range(eparams['num_epochs']):
-
-            # get training data each epoch, randomizes order
-            training_data = generator.get_training_data()
-            models = [data[0] for data in training_data]
-            labels = [data[1] for data in training_data]
-
-            num_batches = len(training_data) / batch_size
-
-            for batch_idx in range(num_batches):
-
-                batch_models = (models[batch_idx*batch_size:
-                                       (batch_idx+1)*batch_size])
-                batch_labels = (labels[batch_idx*batch_size:
-                                       (batch_idx+1)*batch_size])
-
-                sess.run(train_step,
-                         {input_models: batch_models,
-                          input_labels: batch_labels})
-
-                if batch_idx % 10 == 0:
-                    summary, acc, loss = sess.run(
-                        [summaries, accuracy, total_loss],
-                        {input_models: test_models, input_labels: test_labels})
-                    test_writer.add_summary(summary,
-                                            batch_idx + num_batches*epoch_idx)
-                    accuracies.append(acc)
-                    print 'Accuracy at step {}: {}'.format(batch_idx, acc)
-
-                    # END TRAINING
-                    # 1) very low loss, 2) accuracy convergence
-                    if loss < stop_loss:
-                        return
-                    if batch_idx > 100 or epoch_idx > 0:
-                        recent_accs = accuracies[-100:]
-                        recent_avg = sum(recent_accs) / len(recent_accs)
-                        if recent_avg > 0.99:
-                            return
-
-            epoch_loss, epoch_accuracy = sess.run(
-                    [total_loss, accuracy],
-                    {input_models: test_models, input_labels: test_labels})
-            print 'Epoch {} done'.format(epoch_idx)
-            print 'Loss: {}'.format(epoch_loss)
-            print 'Accuracy: {}'.format(epoch_accuracy)
-"""
+    # TODO: loop for early-stopping, instead of continuous train and eval?
 
 
 # RUN AN EXPERIMENT
