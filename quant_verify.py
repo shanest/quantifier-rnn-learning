@@ -69,7 +69,7 @@ def lstm_model_fn(features, labels, mode, params):
 
     # run on input
     # -- output: [batch_size, max_len, out_size]
-    output, state = tf.nn.dynamic_rnn(
+    output, _ = tf.nn.dynamic_rnn(
         multi_cell, input_models,
         dtype=tf.float64, sequence_length=lengths)
 
@@ -96,8 +96,8 @@ def lstm_model_fn(features, labels, mode, params):
 
     # -- loss: [batch_size]
     loss = tf.nn.softmax_cross_entropy_with_logits(
-            labels=input_labels,
-            logits=logits)
+        labels=input_labels,
+        logits=logits)
     # -- total_loss: scalar
     total_loss = tf.reduce_mean(loss)
 
@@ -116,7 +116,7 @@ def lstm_model_fn(features, labels, mode, params):
     target = tf.argmax(input_labels, 1)
 
     # list of metrics for evaluation
-    eval_metrics = {'accuracy': tf.metrics.accuracy(target, prediction)}
+    eval_metrics = {'total_accuracy': tf.metrics.accuracy(target, prediction)}
 
     # metrics by quantifier
     # -- flat_inputs: [batch_size * max_len, item_size]
@@ -134,11 +134,11 @@ def lstm_model_fn(features, labels, mode, params):
     # -- prediction_by_quant: a list num_quants long
     # -- prediction_by_quant[i]: Tensor of predictions for quantifier i
     prediction_by_quant = tf.dynamic_partition(
-            prediction, quant_indices, num_quants)
+        prediction, quant_indices, num_quants)
     # -- target_by_quant: a list num_quants long
     # -- target_by_quant[i]: Tensor containing true for quantifier i
     target_by_quant = tf.dynamic_partition(
-            target, quant_indices, num_quants)
+        target, quant_indices, num_quants)
 
     for idx in xrange(num_quants):
         key = '{}_accuracy'.format(params['quantifiers'][idx]._name)
@@ -203,6 +203,8 @@ def run_trial(eparams, hparams, trial_num,
     # model.evaluate(input_fn=eval_input_fn)
 
     # TODO: bug when running this repeatedly: fails to write events in future
+
+    # TODO: eval at beginning, SessionRunHook for eval + early stopping
 
     # RUN AN EXPERIMENT
     experiment = tf.contrib.learn.Experiment(
