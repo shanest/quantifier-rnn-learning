@@ -181,8 +181,12 @@ class EvalEarlyStopHook(tf.train.SessionRunHook):
         global_step = run_values.results['global_step']
         if (global_step-1) % self._num_steps == 0:
             ev = self._estimator.evaluate(input_fn=self._input_fn)
+
+            print '\nTraining steps done: {}'.format(ev['global_step'])
+            for k, v in ev.items():
+                print '{}: {}'.format(k, v)
+
             # TODO: add running total accuracy or other complex stop condition?
-            print ev
             if ev['loss'] < self._stop_loss:
                 run_context.request_stop()
 
