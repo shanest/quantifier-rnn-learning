@@ -154,12 +154,13 @@ def lstm_model_fn(features, labels, mode, params):
 
 
 def run_trial(eparams, hparams, trial_num,
-              write_dir='/tmp/tensorflow/quantexp'):
+              write_path='/tmp/tensorflow/quantexp'):
 
     tf.reset_default_graph()
 
-    # TODO: model_dir based on trial number as well
     # TODO: rewrite util.convert_trials_to_csv based on new output
+
+    write_dir = '{}/trial_{}'.format(write_path, trial_num)
 
     # BUILD MODEL
     model = tf.estimator.Estimator(
