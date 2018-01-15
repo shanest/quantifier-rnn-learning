@@ -84,7 +84,7 @@ def lstm_model_fn(features, labels, mode, params):
                + (lengths - 1))
     # -- final_output: [batch_size, out_size]
     final_output = tf.gather(flat_output, indices)
-    tf.summary.histogram('final output', final_output)
+    tf.summary.histogram('final_output', final_output)
 
     # make prediction
     # TODO: play with arguments here
@@ -153,6 +153,40 @@ def lstm_model_fn(features, labels, mode, params):
         eval_metric_ops=eval_metrics)
 
 
+class EvalEarlyStopHook(tf.train.SessionRunHook):
+    """Evaluates estimator during training and implements early stopping.
+
+    See https://stackoverflow.com/questions/47137061/. """
+
+    def __init__(self, estimator, eval_input, num_steps=50, stop_loss=0.02):
+
+        self._estimator = estimator
+        self._input_fn = eval_input
+        self._num_steps = num_steps
+        self._stop_loss = stop_loss
+
+    def begin(self):
+
+        self._global_step_tensor = tf.train.get_or_create_global_step()
+        if self._global_step_tensor is None:
+            raise ValueError("global_step needed for EvalEarlyStop")
+
+    def before_run(self, run_context):
+
+        requests = {'global_step': self._global_step_tensor}
+        return tf.train.SessionRunArgs(requests)
+
+    def after_run(self, run_context, run_values):
+
+        global_step = run_values.results['global_step']
+        if (global_step-1) % self._num_steps == 0:
+            ev = self._estimator.evaluate(input_fn=self._input_fn)
+            # TODO: add running total accuracy or other complex stop condition?
+            print ev
+            if ev['loss'] < self._stop_loss:
+                run_context.request_stop()
+
+
 def run_trial(eparams, hparams, trial_num,
               write_path='/tmp/tensorflow/quantexp'):
 
@@ -163,10 +197,16 @@ def run_trial(eparams, hparams, trial_num,
     write_dir = '{}/trial_{}'.format(write_path, trial_num)
 
     # BUILD MODEL
+    run_config = tf.estimator.RunConfig(
+        save_checkpoints_steps=eparams['eval_steps'],
+        save_checkpoints_secs=None,
+        save_summary_steps=eparams['eval_steps'])
+
     model = tf.estimator.Estimator(
         model_fn=lstm_model_fn,
         params=hparams,
-        model_dir=write_dir)
+        model_dir=write_dir,
+        config=run_config)
 
     # GENERATE DATA
     generator = data_gen.DataGenerator(
@@ -177,7 +217,6 @@ def run_trial(eparams, hparams, trial_num,
     training_data = generator.get_training_data()
     test_data = generator.get_test_data()
 
-    # TODO: document
     def get_np_data(data):
         x_data = np.array([datum[0] for datum in data])
         y_data = np.array([datum[1] for datum in data])
@@ -200,25 +239,24 @@ def run_trial(eparams, hparams, trial_num,
         batch_size=len(test_x),
         shuffle=False)
 
-    # model.train(input_fn=train_input_fn, steps=200)
-    # model.evaluate(input_fn=eval_input_fn)
+    # train and evaluate model together, using the Hook
+    model.train(input_fn=train_input_fn,
+                steps=201,
+                hooks=[EvalEarlyStopHook(model, eval_input_fn,
+                                         eparams['eval_steps'],
+                                         eparams['stop_loss'])])
 
-    # TODO: bug when running this repeatedly: fails to write events in future
 
-    # TODO: eval at beginning, SessionRunHook for eval + early stopping
-
-    # RUN AN EXPERIMENT
-    experiment = tf.contrib.learn.Experiment(
-        model,
-        train_input_fn,
-        eval_input_fn,
-        train_steps=200,
-        train_steps_per_iteration=50,
-        eval_steps=None)
-
-    experiment.continuous_train_and_eval()
-
-    # TODO: loop for early-stopping, instead of continuous train and eval?
+def test():
+    eparams = {'num_epochs': 4, 'batch_size': 8,
+               'generator_mode': 'g', 'num_data': 10000,
+               'eval_steps': 50, 'stop_loss': 0.02}
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
+               'num_classes': 2, 'dropout': 1.0,
+               'quantifiers': [quantifiers.at_least_n(4),
+                               quantifiers.most]}
+    for idx in range(2):
+        run_trial(eparams, hparams, idx)
 
 
 # RUN AN EXPERIMENT
@@ -304,3 +342,7 @@ def experiment_three(write_dir='data/exp3'):
 
     for idx in range(num_trials):
         run_trial(eparams, hparams, idx, write_dir)
+
+
+if __name__ == '__main__':
+    test()
