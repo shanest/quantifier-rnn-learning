@@ -264,18 +264,6 @@ def run_trial(eparams, hparams, trial_num,
                                          eparams['stop_loss'])])
 
 
-def test():
-    eparams = {'num_epochs': 4, 'batch_size': 8,
-               'generator_mode': 'g', 'num_data': 10000,
-               'eval_steps': 50, 'stop_loss': 0.02}
-    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
-               'num_classes': 2, 'dropout': 1.0,
-               'quantifiers': [quantifiers.at_least_n(4),
-                               quantifiers.most]}
-    for idx in range(2):
-        run_trial(eparams, hparams, idx)
-
-
 # RUN AN EXPERIMENT
 
 def experiment_one_a(write_dir='data/exp1a'):
@@ -361,5 +349,16 @@ def experiment_three(write_dir='data/exp3'):
         run_trial(eparams, hparams, idx, write_dir)
 
 
+# TEST
 if __name__ == '__main__':
+    # TODO: clean this up / move into proper testing
+    eparams = {'num_epochs': 4, 'batch_size': 8,
+               'generator_mode': 'g', 'num_data': 10000,
+               'eval_steps': 50, 'stop_loss': 0.02}
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
+               'num_classes': 2, 'dropout': 1.0,
+               'quantifiers': [quantifiers.at_least_n(4),
+                               quantifiers.most]}
+    for idx in range(2):
+        run_trial(eparams, hparams, idx)
     test()
