@@ -258,7 +258,6 @@ def run_trial(eparams, hparams, trial_num,
 
     # train and evaluate model together, using the Hook
     model.train(input_fn=train_input_fn,
-                steps=201,
                 hooks=[EvalEarlyStopHook(model, eval_input_fn, csv_file,
                                          eparams['eval_steps'],
                                          eparams['stop_loss'])])
