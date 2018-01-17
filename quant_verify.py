@@ -16,9 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 import tensorflow as tf
 import numpy as np
+from collections import defaultdict
 
 import data_gen
 import quantifiers
+import util
 
 
 INPUT_FEATURE = 'x'
@@ -156,14 +158,19 @@ def lstm_model_fn(features, labels, mode, params):
 class EvalEarlyStopHook(tf.train.SessionRunHook):
     """Evaluates estimator during training and implements early stopping.
 
+    Writes output of a trial as CSV file.
+
     See https://stackoverflow.com/questions/47137061/. """
 
-    def __init__(self, estimator, eval_input, num_steps=50, stop_loss=0.02):
+    def __init__(self, estimator, eval_input, filename, num_steps=50, stop_loss=0.02):
 
         self._estimator = estimator
         self._input_fn = eval_input
         self._num_steps = num_steps
         self._stop_loss = stop_loss
+        # store results of evaluations
+        self._results = defaultdict(list)
+        self._filename = filename
 
     def begin(self):
 
@@ -184,11 +191,16 @@ class EvalEarlyStopHook(tf.train.SessionRunHook):
 
             print '\nTraining steps done: {}'.format(ev['global_step'])
             for k, v in ev.items():
+                self._results[k].append(v)
                 print '{}: {}'.format(k, v)
 
             # TODO: add running total accuracy or other complex stop condition?
             if ev['loss'] < self._stop_loss:
                 run_context.request_stop()
+
+    def end(self, session):
+        # write results to csv
+        util.dict_to_csv(self._results, self._filename)
 
 
 def run_trial(eparams, hparams, trial_num,
@@ -199,6 +211,7 @@ def run_trial(eparams, hparams, trial_num,
     # TODO: rewrite util.convert_trials_to_csv based on new output
 
     write_dir = '{}/trial_{}'.format(write_path, trial_num)
+    csv_file = '{}/trial_{}.csv'.format(write_path, trial_num)
 
     # BUILD MODEL
     run_config = tf.estimator.RunConfig(
@@ -246,7 +259,7 @@ def run_trial(eparams, hparams, trial_num,
     # train and evaluate model together, using the Hook
     model.train(input_fn=train_input_fn,
                 steps=201,
-                hooks=[EvalEarlyStopHook(model, eval_input_fn,
+                hooks=[EvalEarlyStopHook(model, eval_input_fn, csv_file,
                                          eparams['eval_steps'],
                                          eparams['stop_loss'])])
 

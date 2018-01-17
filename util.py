@@ -18,8 +18,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 from tensorboard.backend.event_processing \
         import event_accumulator as ea
 import pandas as pd
-# TODO: document this!
 
+
+# NOTE: with port to tf.estimator interface, I now write CSVs directly at the
+# end of a trial.  This makes convert_trials_to_csv -- and its helper get_table
+# -- obsolete.  I am leaving them here for now in case there's a use in the
+# future.
 
 def convert_trials_to_csv(in_path, trials, out_path):
     """Takes data that was output as TF events, converts into more digestible
@@ -53,7 +57,7 @@ def get_table(acc, trial):
     """
     data = {}
     scalar_tags = [tag for tag in acc.Tags()['scalars']
-            if tag.startswith('trial_{}/'.format(trial))]
+                   if tag.startswith('trial_{}/'.format(trial))]
     # get time steps
     data['steps'] = [s.step for s in acc.Scalars(scalar_tags[0])]
     for tag in scalar_tags:
@@ -80,5 +84,19 @@ def read_trials_from_csv(path, trials):
     data = {}
     for trial in trials:
         data[trial] = pd.DataFrame.from_csv(
-                '{}/trial_{}.csv'.format(path, trial))
+            '{}/trial_{}.csv'.format(path, trial))
     return data
+
+
+def dict_to_csv(data, filename):
+    """Writes a dictionary to a CSV file.
+    The header of the CSV file will be the keys from the dictionary.
+    Values in the dict are lists of equal length; each row of the CSV
+    file contains the next item from each list.
+
+    Args:
+        data: the dictionary containing data
+        filename: file to write to
+    """
+    frame = pd.DataFrame(data)
+    frame.to_csv(filename)
