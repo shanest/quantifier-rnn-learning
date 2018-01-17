@@ -162,7 +162,8 @@ class EvalEarlyStopHook(tf.train.SessionRunHook):
 
     See https://stackoverflow.com/questions/47137061/. """
 
-    def __init__(self, estimator, eval_input, filename, num_steps=50, stop_loss=0.02):
+    def __init__(self, estimator, eval_input, filename,
+                 num_steps=50, stop_loss=0.02):
 
         self._estimator = estimator
         self._input_fn = eval_input
@@ -187,15 +188,15 @@ class EvalEarlyStopHook(tf.train.SessionRunHook):
 
         global_step = run_values.results['global_step']
         if (global_step-1) % self._num_steps == 0:
-            ev = self._estimator.evaluate(input_fn=self._input_fn)
+            ev_results = self._estimator.evaluate(input_fn=self._input_fn)
 
-            print '\nTraining steps done: {}'.format(ev['global_step'])
-            for k, v in ev.items():
-                self._results[k].append(v)
-                print '{}: {}'.format(k, v)
+            print ''
+            for key, value in ev_results.items():
+                self._results[key].append(value)
+                print '{}: {}'.format(key, value)
 
             # TODO: add running total accuracy or other complex stop condition?
-            if ev['loss'] < self._stop_loss:
+            if ev_results['loss'] < self._stop_loss:
                 run_context.request_stop()
 
     def end(self, session):
@@ -207,8 +208,6 @@ def run_trial(eparams, hparams, trial_num,
               write_path='/tmp/tensorflow/quantexp'):
 
     tf.reset_default_graph()
-
-    # TODO: rewrite util.convert_trials_to_csv based on new output
 
     write_dir = '{}/trial_{}'.format(write_path, trial_num)
     csv_file = '{}/trial_{}.csv'.format(write_path, trial_num)
@@ -256,8 +255,11 @@ def run_trial(eparams, hparams, trial_num,
         batch_size=len(test_x),
         shuffle=False)
 
+    print '\n------ TRIAL {} -----'.format(trial_num)
+
     # train and evaluate model together, using the Hook
     model.train(input_fn=train_input_fn,
+                steps=201,
                 hooks=[EvalEarlyStopHook(model, eval_input_fn, csv_file,
                                          eparams['eval_steps'],
                                          eparams['stop_loss'])])
@@ -349,8 +351,7 @@ def experiment_three(write_dir='data/exp3'):
 
 
 # TEST
-if __name__ == '__main__':
-    # TODO: clean this up / move into proper testing
+def test():
     eparams = {'num_epochs': 4, 'batch_size': 8,
                'generator_mode': 'g', 'num_data': 10000,
                'eval_steps': 50, 'stop_loss': 0.02}
@@ -360,4 +361,8 @@ if __name__ == '__main__':
                                quantifiers.most]}
     for idx in range(2):
         run_trial(eparams, hparams, idx)
+
+
+if __name__ == '__main__':
+    # TODO: clean this up / move into proper testing
     test()
