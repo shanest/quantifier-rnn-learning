@@ -14,9 +14,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
+from collections import defaultdict
 import tensorflow as tf
 import numpy as np
-from collections import defaultdict
 
 import data_gen
 import quantifiers
@@ -259,7 +259,6 @@ def run_trial(eparams, hparams, trial_num,
 
     # train and evaluate model together, using the Hook
     model.train(input_fn=train_input_fn,
-                steps=201,
                 hooks=[EvalEarlyStopHook(model, eval_input_fn, csv_file,
                                          eparams['eval_steps'],
                                          eparams['stop_loss'])])
