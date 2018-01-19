@@ -269,7 +269,8 @@ def run_trial(eparams, hparams, trial_num,
 def experiment_one_a(write_dir='data/exp1a'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-               'generator_mode': 'g', 'num_data': 100000}
+               'generator_mode': 'g', 'num_data': 100000,
+               'eval_steps': 50, 'stop_loss': 0.02}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
                'num_classes': 2, 'dropout': 1.0,
                'quantifiers': [quantifiers.at_least_n(4),
@@ -283,7 +284,8 @@ def experiment_one_a(write_dir='data/exp1a'):
 def experiment_one_b(write_dir='data/exp1b'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-               'generator_mode': 'g', 'num_data': 100000}
+               'generator_mode': 'g', 'num_data': 100000,
+               'eval_steps': 50, 'stop_loss': 0.02}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
                'num_classes': 2, 'dropout': 1.0,
                'quantifiers': [quantifiers.at_most_n(3),
@@ -297,7 +299,8 @@ def experiment_one_b(write_dir='data/exp1b'):
 def experiment_one_c(write_dir='data/exp1c'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-               'generator_mode': 'g', 'num_data': 100000}
+               'generator_mode': 'g', 'num_data': 100000,
+               'eval_steps': 50, 'stop_loss': 0.02}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
                'num_classes': 2, 'dropout': 1.0,
                'quantifiers': [quantifiers.at_least_n(4),
@@ -311,7 +314,8 @@ def experiment_one_c(write_dir='data/exp1c'):
 def experiment_one_d(write_dir='data/exp1d'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-               'generator_mode': 'g', 'num_data': 100000}
+               'generator_mode': 'g', 'num_data': 100000,
+               'eval_steps': 50, 'stop_loss': 0.02}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
                'num_classes': 2, 'dropout': 1.0,
                'quantifiers': [quantifiers.at_most_n(4),
@@ -325,7 +329,8 @@ def experiment_one_d(write_dir='data/exp1d'):
 def experiment_two(write_dir='data/exp2'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-               'generator_mode': 'g', 'num_data': 200000}
+               'generator_mode': 'g', 'num_data': 200000,
+               'eval_steps': 50, 'stop_loss': 0.02}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
                'num_classes': 2, 'dropout': 1.0,
                'quantifiers': [quantifiers.first_n(3),
@@ -339,7 +344,8 @@ def experiment_two(write_dir='data/exp2'):
 def experiment_three(write_dir='data/exp3'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-               'generator_mode': 'g', 'num_data': 300000}
+               'generator_mode': 'g', 'num_data': 300000,
+               'eval_steps': 50, 'stop_loss': 0.02}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
                'num_classes': 2, 'dropout': 1.0,
                'quantifiers': [quantifiers.nall, quantifiers.notonly]}
