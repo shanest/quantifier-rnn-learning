@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 from collections import defaultdict
+import argparse
 import tensorflow as tf
 import numpy as np
 
@@ -264,7 +265,7 @@ def run_trial(eparams, hparams, trial_num,
                                          eparams['stop_loss'])])
 
 
-# RUN AN EXPERIMENT
+# DEFINE AN EXPERIMENT
 
 def experiment_one_a(write_dir='data/exp1a'):
 
@@ -369,5 +370,24 @@ def test():
 
 
 if __name__ == '__main__':
-    # TODO: clean this up / move into proper testing
-    test()
+
+    # RUN AN EXPERIMENT, with command-line arguments
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--exp', help='which experiment to run', type=str)
+    parser.add_argument('--out_path', help='path to output', type=str)
+    args = parser.parse_args()
+
+    func_map = {
+        'one_a': experiment_one_a,
+        'one_b': experiment_one_b,
+        'two': experiment_two,
+        'three': experiment_three,
+        'test': test
+    }
+    func = func_map[args.exp]
+
+    if args.out_path:
+        func(args.out_path)
+    else:
+        func()
