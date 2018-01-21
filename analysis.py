@@ -15,9 +15,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 
+import itertools as it
 import numpy as np
 import scipy.stats as stats
-import itertools as it
 from matplotlib import pyplot as plt
 import util
 
@@ -47,17 +47,17 @@ def experiment_analysis(path, quants, trials=range(30), plots=True):
         make_plot(data, quants, ylim=(0.8, 1))
 
     print stats.ttest_rel(convergence_points[quants[0]],
-            convergence_points[quants[1]])
+                          convergence_points[quants[1]])
 
 
 def experiment_one_a_analysis():
     experiment_analysis('data/exp1a', ['at_least_4',
-        'at_least_6_or_at_most_2'])
+                                       'at_least_6_or_at_most_2'])
 
 
 def experiment_one_b_analysis():
     experiment_analysis('data/exp1b', ['at_most_3',
-        'at_least_6_or_at_most_2'])
+                                       'at_least_6_or_at_most_2'])
 
 
 def experiment_two_analysis():
@@ -75,10 +75,11 @@ def remove_bad_trials(data, threshold=0.97):
     """
     accuracies = [data[key]['total_accuracy'].values for key in data.keys()]
     forward_accs = [forward_means(accs) for accs in accuracies]
-    threshold_pos = [first_above_threshold(accs, threshold) for accs in forward_accs]
+    threshold_pos = [first_above_threshold(accs, threshold)
+                     for accs in forward_accs]
     # a trial is bad if the forward mean never hit 0.99
-    bad_trials = [idx for idx, threshold in enumerate(threshold_pos)
-            if threshold is None]
+    bad_trials = [idx for idx, thresh in enumerate(threshold_pos)
+                  if thresh is None]
     print 'Number of bad trials: {}'.format(len(bad_trials))
     for trial in bad_trials:
         del data[trial]
@@ -99,9 +100,9 @@ def get_convergence_points(data, quants):
     for trial in data.keys():
         for quant in quants:
             convergence_points[quant].append(
-                    data[trial]['steps'][
-                        convergence_point(
-                            data[trial][quant + '_accuracy'].values)])
+                data[trial]['global_step'][
+                    convergence_point(
+                        data[trial][quant + '_accuracy'].values)])
     return convergence_points
 
 
@@ -119,18 +120,23 @@ def diff(ls1, ls2):
     return [ls1[i] - ls2[i] for i in range(len(ls1))]
 
 
-def forward_means(arr):
+def forward_means(arr, window_size=250):
     """Get the forward means of a list. The forward mean at index i is
-    the sum of all the elements from i until the end of the list, divided
-    by the number of such elements.
+    the sum of all the elements from i until i+window_size, divided
+    by the number of such elements. If there are not window_size elements
+    after index i, the forward mean is the mean of all elements from i
+    until the end of the list.
 
     Args:
         arr: the list to get means of
+        window_size: the size of the forward window for the mean
 
     Returns:
         a list, of same length as arr, with the forward means
     """
-    return [sum(arr[idx:]) / (len(arr) - idx) for idx in range(len(arr))]
+    return [(sum(arr[idx:min(idx+window_size, len(arr))])
+             / min(window_size, len(arr)-idx))
+            for idx in range(len(arr))]
 
 
 def first_above_threshold(arr, threshold=0.97):
@@ -175,27 +181,28 @@ def make_plot(data, quants, ylim=None, threshold=0.95):
 
     trials_by_quant = [[] for _ in range(len(quants))]
     for trial in data.keys():
-        steps = data[trial]['steps'].values
+        steps = data[trial]['global_step'].values
         for idx in range(len(quants)):
             trials_by_quant[idx].append(smooth_data(
-                    data[trial][quants[idx] + '_accuracy'].values))
+                data[trial][quants[idx] + '_accuracy'].values))
             plt.plot(steps, trials_by_quant[idx][-1],
-                    COLORS[idx], alpha=0.3)
+                     COLORS[idx], alpha=0.3)
 
     # plot median lines
     medians_by_quant = [get_median_diff_lengths(trials_by_quant[idx])
-            for idx in range(len(trials_by_quant))]
+                        for idx in range(len(trials_by_quant))]
+    longest_trial = np.argmax([len(trial) for trial in trials_by_quant[0]])
+    longest_x = data[longest_trial]['global_step'].values
     for idx in range(len(quants)):
-        # TODO: make x-axis code cleaner? recorded very 10 steps
-        plt.plot([i*10 for i in range(len(medians_by_quant[idx]))],
-                smooth_data(medians_by_quant[idx]),
-                COLORS[idx],
-                label=quants[idx],
-                linewidth=2)
+        plt.plot(longest_x,
+                 smooth_data(medians_by_quant[idx]),
+                 COLORS[idx],
+                 label=quants[idx],
+                 linewidth=2)
 
     max_x = max([len(ls) for ls in medians_by_quant])
-    x = range(0, 10*max_x, 10)
-    plt.plot(x, [threshold for _ in range(max_x)], linestyle='dashed', color='green')
+    plt.plot(longest_x, [threshold for _ in range(max_x)],
+             linestyle='dashed', color='green')
 
     if ylim:
         plt.ylim(ylim)
@@ -219,9 +226,9 @@ def get_median_diff_lengths(trials):
     max_len = np.max([len(trial) for trial in trials])
     # pad trials with NaN values to length of longest trial
     trials = np.asarray(
-            [np.pad(trial, (0, max_len - len(trial)),
+        [np.pad(trial, (0, max_len - len(trial)),
                 'constant', constant_values=np.nan)
-                for trial in trials])
+         for trial in trials])
     return np.nanmedian(trials, axis=0)
 
 
@@ -247,21 +254,22 @@ def make_barplots(convergence_points, quants):
     pairs = list(it.combinations(quants, 2))
     assert len(pairs) <= len(COLORS)
 
-    diffs = {pair: diff(convergence_points[pair[0]], convergence_points[pair[1]])
-            for pair in pairs}
+    diffs = {pair: diff(convergence_points[pair[0]],
+                        convergence_points[pair[1]])
+             for pair in pairs}
     means = {pair: np.mean(diffs[pair]) for pair in pairs}
     stds = {pair: np.std(diffs[pair]) for pair in pairs}
-    intervals = {pair: stats.norm.interval(0.95,
-        loc=means[pair],
+    intervals = {pair: stats.norm.interval(
+        0.95, loc=means[pair],
         scale=stds[pair]/np.sqrt(len(diffs[pair])))
         for pair in pairs}
 
     # plotting info
     index = np.arange(len(pairs))
     bar_width = 0.75
-    #reshape intervals to be fed to pyplot
+    # reshape intervals to be fed to pyplot
     yerrs = [[means[pair] - intervals[pair][0] for pair in pairs],
-            [intervals[pair][1] - means[pair] for pair in pairs]]
+             [intervals[pair][1] - means[pair] for pair in pairs]]
 
     plt.bar(index, [means[pair] for pair in pairs], bar_width, yerr=yerrs,
             color=[COLORS[idx] for idx in range(len(pairs))],
@@ -283,7 +291,7 @@ def smooth_data(data, smooth_weight=0.9):
     """
     prev = data[0]
     smoothed = []
-    for pt in data:
-        smoothed.append(prev*smooth_weight + pt*(1-smooth_weight))
+    for point in data:
+        smoothed.append(prev*smooth_weight + point*(1-smooth_weight))
         prev = smoothed[-1]
     return smoothed
