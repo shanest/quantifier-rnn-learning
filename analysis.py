@@ -149,8 +149,9 @@ def first_above_threshold(arr, threshold=0.97):
     Returns:
         the first i such that arr[i] > threshold, or None if there is not one
     """
+    means = forward_means(arr)
     for idx in range(len(arr)):
-        if arr[idx] > threshold:
+        if arr[idx] > threshold and means[idx] > threshold:
             return idx
     return None
 
@@ -165,7 +166,27 @@ def convergence_point(arr, threshold=0.95):
     Returns:
         the first i such that forward_means(arr)[i] is above threshold
     """
-    return first_above_threshold(forward_means(arr), threshold)
+    return first_above_threshold(arr, threshold)
+
+
+def get_max_steps(data):
+    """Gets the longest `global_step` column from a data set.
+
+    Args:
+        data: a dictionary, whose values are pandas.DataFrame, which have a
+        column named `global_step`
+
+    Returns:
+        the values for the longest `global_step` column in data
+    """
+    max_val = None
+    max_len = 0
+    for key in data.keys():
+        new_len = len(data[key]['global_step'].values)
+        if new_len > max_len:
+            max_len = new_len
+            max_val = data[key]['global_step'].values
+    return max_val
 
 
 def make_plot(data, quants, ylim=None, threshold=0.95):
@@ -191,8 +212,8 @@ def make_plot(data, quants, ylim=None, threshold=0.95):
     # plot median lines
     medians_by_quant = [get_median_diff_lengths(trials_by_quant[idx])
                         for idx in range(len(trials_by_quant))]
-    longest_trial = np.argmax([len(trial) for trial in trials_by_quant[0]])
-    longest_x = data[longest_trial]['global_step'].values
+    # get x-axis of longest trial
+    longest_x = get_max_steps(data)
     for idx in range(len(quants)):
         plt.plot(longest_x,
                  smooth_data(medians_by_quant[idx]),
