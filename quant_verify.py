@@ -63,12 +63,12 @@ def lstm_model_fn(features, labels, mode, params):
     cells = []
     for _ in range(params['num_layers']):
         # TODO: consider other RNN cells?
-        cell = tf.contrib.rnn.LSTMCell(params['hidden_size'])
+        cell = tf.nn.rnn_cell.LSTMCell(params['hidden_size'])
         # dropout
-        cell = tf.contrib.rnn.DropoutWrapper(
+        cell = tf.nn.rnn_cell.DropoutWrapper(
             cell, state_keep_prob=params['dropout'])
         cells.append(cell)
-    multi_cell = tf.contrib.rnn.MultiRNNCell(cells)
+    multi_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
 
     # run on input
     # -- output: [batch_size, max_len, out_size]
