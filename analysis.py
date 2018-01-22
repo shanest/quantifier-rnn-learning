@@ -139,7 +139,7 @@ def forward_means(arr, window_size=250):
             for idx in range(len(arr))]
 
 
-def first_above_threshold(arr, threshold=0.97):
+def first_above_threshold(arr, threshold):
     """Return the point at which a list value is above a threshold.
 
     Args:
