@@ -96,6 +96,15 @@ def lstm_model_fn(features, labels, mode, params):
         inputs=final_output,
         num_outputs=params['num_classes'],
         activation_fn=None)
+    # -- probs: [batch_size, num_classes]
+    probs = tf.nn.softmax(logits)
+    # dictionary of outputs
+    ouputs = {'probs': probs}
+
+    # exit before labels are used when in predict mode
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        return tf.estimator.EstimatorSpec(mode=mode,
+                                          predictions=outputs)
 
     # -- loss: [batch_size]
     loss = tf.nn.softmax_cross_entropy_with_logits(
@@ -110,8 +119,6 @@ def lstm_model_fn(features, labels, mode, params):
     train_op = optimizer.minimize(total_loss,
                                   global_step=tf.train.get_global_step())
 
-    # -- probs: [batch_size, num_classes]
-    probs = tf.nn.softmax(logits)
     # total accuracy
     # -- prediction: [batch_size]
     prediction = tf.argmax(probs, 1)
@@ -152,7 +159,6 @@ def lstm_model_fn(features, labels, mode, params):
         mode=mode,
         loss=total_loss,
         train_op=train_op,
-        predictions={'probs': probs},
         eval_metric_ops=eval_metrics)
 
 
