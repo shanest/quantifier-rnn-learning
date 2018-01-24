@@ -273,6 +273,8 @@ def run_trial(eparams, hparams, trial_num,
 
 
 # EXAMPLE FOR TRANSFER LEARNING
+# TODO: move this into another file?
+# TODO: better documentation
 
 def transfer_lstm_model_fn(features, labels, mode, params):
 
@@ -287,6 +289,10 @@ def transfer_lstm_model_fn(features, labels, mode, params):
     # -- lengths: [batch_size], how long each input really is
     lengths = length(input_models)
 
+    # NOTE: (i) any code which defines variables that you want to load from a
+    # saved model should be put inside this variable scope
+    # (ii) the code here should mirror the code used in the model_fn that
+    # you used for training a model [i.e. lstm_model_fn above in this case]
     with tf.variable_scope('transferred'):
         cells = []
         for _ in range(params['num_layers']):
@@ -305,12 +311,14 @@ def transfer_lstm_model_fn(features, labels, mode, params):
             dtype=tf.float64, sequence_length=lengths)
 
     # see https://github.com/tensorflow/tensorflow/issues/14713#issuecomment-349477017
+    # NOTE: (iii) if you use your own model_fn and want to do transfer
+    # learning, you can also put the relevant code in its own variable scope in
+    # the other model_fn.  If you do that, make sure to pass the old scope in
+    # as params['old_scope']
     tf.train.init_from_checkpoint(params['checkpoint_path'],
                                   {params['old_scope']: 'transferred/'})
 
     # do stuff with output
-    # TODO: modify to allow prediction at every time step
-
     # extract output at end of reading sequence
     # -- flat_output: [batch_size * max_len, out_size]
     flat_output = tf.reshape(output, [-1, params['hidden_size']])
