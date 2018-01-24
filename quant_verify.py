@@ -27,25 +27,26 @@ import util
 INPUT_FEATURE = 'x'
 
 
+# for variable length sequences,
+# see http://danijar.com/variable-sequence-lengths-in-tensorflow/
+def length(data):
+    """Gets real length of sequences from a padded tensor.
+
+    Args:
+        data: a Tensor, containing sequences
+
+    Returns:
+        a Tensor, of shape [data.shape[0]], containing the length
+        of each sequence
+    """
+    used = tf.sign(tf.reduce_max(tf.abs(data), reduction_indices=2))
+    length = tf.reduce_sum(used, reduction_indices=1)
+    length = tf.cast(length, tf.int32)
+    return length
+
+
 # TODO: some docs here, noting TF estimator stuff
 def lstm_model_fn(features, labels, mode, params):
-
-    # for variable length sequences,
-    # see http://danijar.com/variable-sequence-lengths-in-tensorflow/
-    def length(data):
-        """Gets real length of sequences from a padded tensor.
-
-        Args:
-            data: a Tensor, containing sequences
-
-        Returns:
-            a Tensor, of shape [data.shape[0]], containing the length
-            of each sequence
-        """
-        used = tf.sign(tf.reduce_max(tf.abs(data), reduction_indices=2))
-        length = tf.reduce_sum(used, reduction_indices=1)
-        length = tf.cast(length, tf.int32)
-        return length
 
     # BUILD GRAPH
 
@@ -99,7 +100,7 @@ def lstm_model_fn(features, labels, mode, params):
     # -- probs: [batch_size, num_classes]
     probs = tf.nn.softmax(logits)
     # dictionary of outputs
-    ouputs = {'probs': probs}
+    outputs = {'probs': probs}
 
     # exit before labels are used when in predict mode
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -271,6 +272,129 @@ def run_trial(eparams, hparams, trial_num,
                                          eparams['stop_loss'])])
 
 
+# EXAMPLE FOR TRANSFER LEARNING
+
+def transfer_lstm_model_fn(features, labels, mode, params):
+
+    # how big each input will be
+    num_quants = len(params['quantifiers'])
+    item_size = quantifiers.Quantifier.num_chars + num_quants
+
+    # -- input_models: [batch_size, max_len, item_size]
+    input_models = features[INPUT_FEATURE]
+    # -- input_labels: [batch_size, num_classes]
+    input_labels = labels
+    # -- lengths: [batch_size], how long each input really is
+    lengths = length(input_models)
+
+    with tf.variable_scope('transferred'):
+        cells = []
+        for _ in range(params['num_layers']):
+            # TODO: consider other RNN cells?
+            cell = tf.nn.rnn_cell.LSTMCell(params['hidden_size'])
+            # dropout
+            cell = tf.nn.rnn_cell.DropoutWrapper(
+                cell, state_keep_prob=params['dropout'])
+            cells.append(cell)
+        multi_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
+
+        # run on input
+        # -- output: [batch_size, max_len, out_size]
+        output, _ = tf.nn.dynamic_rnn(
+            multi_cell, input_models,
+            dtype=tf.float64, sequence_length=lengths)
+
+    # see https://github.com/tensorflow/tensorflow/issues/14713#issuecomment-349477017
+    tf.train.init_from_checkpoint(params['checkpoint_path'],
+                                  {params['old_scope']: 'transferred/'})
+
+    # do stuff with output
+    # TODO: modify to allow prediction at every time step
+
+    # extract output at end of reading sequence
+    # -- flat_output: [batch_size * max_len, out_size]
+    flat_output = tf.reshape(output, [-1, params['hidden_size']])
+    # -- indices: [batch_size]
+    output_length = tf.shape(output)[0]
+    indices = (tf.range(0, output_length) * params['max_len']
+               + (lengths - 1))
+    # -- final_output: [batch_size, out_size]
+    final_output = tf.gather(flat_output, indices)
+    tf.summary.histogram('final_output', final_output)
+
+    # make prediction
+    # TODO: play with arguments here
+    # -- logits: [batch_size, num_classes]
+    logits = tf.contrib.layers.fully_connected(
+        inputs=final_output,
+        num_outputs=params['num_classes'],
+        activation_fn=None)
+    # -- probs: [batch_size, num_classes]
+    probs = tf.nn.softmax(logits)
+    # dictionary of outputs
+    outputs = {'probs': probs}
+
+    # exit before labels are used when in predict mode
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        return tf.estimator.EstimatorSpec(mode=mode,
+                                          predictions=outputs)
+
+    # -- loss: [batch_size]
+    loss = tf.nn.softmax_cross_entropy_with_logits(
+        labels=input_labels,
+        logits=logits)
+    # -- total_loss: scalar
+    total_loss = tf.reduce_mean(loss)
+
+    # training op
+    # TODO: try different optimizers, parameters for it, etc
+    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
+    train_op = optimizer.minimize(total_loss,
+                                  global_step=tf.train.get_global_step())
+
+    return tf.estimator.EstimatorSpec(
+        mode=mode,
+        loss=total_loss,
+        train_op=train_op)
+
+
+def transfer_test():
+
+    params = {'checkpoint_path':
+              'data/exp1a/trial_0/',
+              'old_scope': '/',
+              'hidden_size': 12, 'num_layers': 2,
+              'max_len': 20, 'num_classes': 2,
+              'dropout': 1.0,
+              'quantifiers':
+              [quantifiers.at_least_n(4),
+               quantifiers.at_least_n_or_at_most_m(6, 2)]}
+    model = tf.estimator.Estimator(model_fn=transfer_lstm_model_fn,
+                                   params=params)
+
+    generator = data_gen.DataGenerator(params['max_len'],
+                                       params['quantifiers'],
+                                       num_data_points=1000)
+
+    some_data = generator.get_training_data()
+
+    # must train before predict, so we'll give it one example
+    model.train(input_fn=tf.estimator.inputs.numpy_input_fn(
+        x={INPUT_FEATURE: np.array([some_data[0][0]])},
+        y=np.array([some_data[0][1]]),
+        shuffle=False))
+
+    some_inputs = np.array([datum[0] for datum in some_data])
+    predict_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x={INPUT_FEATURE: some_inputs},
+        shuffle=False)
+
+    predictions = list(model.predict(input_fn=predict_input_fn))
+    for idx in xrange(5):
+        print 'input: {}\nprobs: {}\n'.format(some_inputs[idx],
+                                              predictions[idx]['probs'])
+
+
 # DEFINE AN EXPERIMENT
 
 def experiment_one_a(write_dir='data/exp1a'):
@@ -389,7 +513,7 @@ if __name__ == '__main__':
         'one_b': experiment_one_b,
         'two': experiment_two,
         'three': experiment_three,
-        'test': test
+        'test': transfer_test
     }
     func = func_map[args.exp]
 
