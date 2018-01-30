@@ -39,10 +39,13 @@ def length(data):
         a Tensor, of shape [data.shape[0]], containing the length
         of each sequence
     """
+    data = tf.slice(data,
+                    [0, 0, 0],
+                    [-1, -1, quantifiers.Quantifier.num_chars])
     used = tf.sign(tf.reduce_max(tf.abs(data), reduction_indices=2))
-    length = tf.reduce_sum(used, reduction_indices=1)
-    length = tf.cast(length, tf.int32)
-    return length
+    lengths = tf.reduce_sum(used, reduction_indices=1)
+    lengths = tf.cast(length, tf.int32)
+    return lengths
 
 
 # TODO: some docs here, noting TF estimator stuff
