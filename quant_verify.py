@@ -44,7 +44,7 @@ def length(data):
                     [-1, -1, quantifiers.Quantifier.num_chars])
     used = tf.sign(tf.reduce_max(tf.abs(data), reduction_indices=2))
     lengths = tf.reduce_sum(used, reduction_indices=1)
-    lengths = tf.cast(length, tf.int32)
+    lengths = tf.cast(lengths, tf.int32)
     return lengths
 
 
