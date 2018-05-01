@@ -367,7 +367,7 @@ def experiment_two_b(write_dir='data/exp2b'):
         run_trial(eparams, hparams, idx, write_dir)
 
 
-def experiment_three(write_dir='data/exp3'):
+def experiment_three_a(write_dir='data/exp3a'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
                'generator_mode': 'g', 'num_data': 300000,
@@ -375,6 +375,20 @@ def experiment_three(write_dir='data/exp3'):
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
                'num_classes': 2, 'dropout': 1.0,
                'quantifiers': [quantifiers.nall, quantifiers.notonly]}
+    num_trials = 30
+
+    for idx in range(num_trials):
+        run_trial(eparams, hparams, idx, write_dir)
+
+
+def experiment_three_b(write_dir='data/exp3b'):
+
+    eparams = {'num_epochs': 4, 'batch_size': 8,
+               'generator_mode': 'g', 'num_data': 200000,
+               'eval_steps': 50, 'stop_loss': 0.02}
+    hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
+               'num_classes': 2, 'dropout': 1.0,
+               'quantifiers': [quantifiers.most, quantifiers.M]}
     num_trials = 30
 
     for idx in range(num_trials):
@@ -408,7 +422,8 @@ if __name__ == '__main__':
         'one_b': experiment_one_b,
         'two_a': experiment_two_a,
         'two_b': experiment_two_b,
-        'three': experiment_three,
+        'three_a': experiment_three_a,
+        'three_b': experiment_three_b,
         'test': test
     }
     func = func_map[args.exp]

@@ -383,6 +383,35 @@ most = Quantifier("most",
         fn=most_ver)
 
 
+def M_ver(seq):
+    """Verifies whether |A| > |B|, i.e. M from Keenan and Westerstahl 1997
+
+    Args:
+        seq: a sequence of elements from R^4
+
+    Returns:
+        Quantifier.T iff more elements are AB and AnotB together than are
+        AB and BnotA
+    """
+    num_AB = 0
+    num_AnotB = 0
+    num_BnotA = 0
+    for item in seq:
+        if np.array_equal(item, Quantifier.AB):
+            num_AB += 1
+        if np.array_equal(item, Quantifier.AnotB):
+            num_AnotB += 1
+        if np.array_equal(item, Quantifier.BnotA):
+            num_BnotA += 1
+    return (Quantifier.T if num_AB + num_AnotB > num_AB + num_BnotA
+            else Quantifier.F)
+
+
+M = Quantifier("M",
+        isom=True, cons=False, lcons=False, lmon=True, rmon=False,
+        fn=M_ver)
+
+
 def first_n_ver(seq, n):
     """Verifies whether the first n As are also Bs.
 
