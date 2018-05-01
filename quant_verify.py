@@ -384,7 +384,7 @@ def experiment_three_a(write_dir='data/exp3a'):
 def experiment_three_b(write_dir='data/exp3b'):
 
     eparams = {'num_epochs': 4, 'batch_size': 8,
-               'generator_mode': 'g', 'num_data': 200000,
+               'generator_mode': 'g', 'num_data': 100000,
                'eval_steps': 50, 'stop_loss': 0.02}
     hparams = {'hidden_size': 12, 'num_layers': 2, 'max_len': 20,
                'num_classes': 2, 'dropout': 1.0,
