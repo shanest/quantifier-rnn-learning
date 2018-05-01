@@ -410,6 +410,9 @@ def first_n_ver(seq, n):
         elif np.array_equal(item, Quantifier.AB):
             num_AB += 1
 
+    if num_AB >= n:
+        return Quantifier.T
+
     # there are less than n ABs in total
     return Quantifier.F
 
@@ -429,6 +432,37 @@ def first_n(n):
 
 
 first_three = first_n(3)
+
+
+# TODO: document!
+def last_n_ver(seq, n):
+    """Verifies whether the last n As are also Bs.
+
+    Args:
+        seq: sequence of elements from R^4
+        n: an integer
+
+    Returns:
+        Quantifier.T iff the final three elements of seq that are either
+        Quantifier.AB or Quantifier.AnotB are in fact Quantifier.AB.
+        Quantifier.F if either seq has length less than n or there are
+        fewer than n Quantifier.ABs in seq.
+    """
+    return first_n_ver(list(reversed(seq)), n)
+
+
+def last_n(n):
+    """Generates a Quantifier corresponding to `the last n'.
+
+    Args:
+        n: integer
+
+    Returns:
+        a Quantifier, with last_n_ver(_, n) as its verifier
+    """
+    return Quantifier("last_{}".format(n),
+            isom=False, cons=True, lcons=False, rmon=True, lmon=None,
+            fn=lambda seq: last_n_ver(seq, n))
 
 
 def equal_number_ver(seq):
