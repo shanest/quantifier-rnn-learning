@@ -37,7 +37,7 @@ def experiment_analysis(path, quants, trials=range(30), plots=True,
     # read the data in
     data = util.read_trials_from_csv(path, trials)
     # FILTER OUT TRIALS WHERE RNN DID NOT LEARN
-    remove_bad_trials(data, threshold=threshold)
+    remove_bad_trials(data, quants, threshold=threshold)
     # get convergence points per quantifier
     convergence_points = get_convergence_points(data, quants, threshold)
 
@@ -49,6 +49,15 @@ def experiment_analysis(path, quants, trials=range(30), plots=True,
 
     print stats.ttest_rel(convergence_points[quants[0]],
                           convergence_points[quants[1]])
+
+    final_n = 50
+    final_means = [[forward_means(data[trial][quant + '_accuracy'].values,
+        window_size=final_n)[-final_n] for quant in quants]
+        for trial in data]
+    print 'final means: {} - {}'.format(quants[0], quants[1])
+    print stats.ttest_rel(
+            [means[0] for means in final_means],
+            [means[1] for means in final_means])
 
 
 def experiment_one_a_analysis():
@@ -73,18 +82,20 @@ def experiment_three_analysis():
     experiment_analysis('data/exp3', ['not_all', 'not_only'])
 
 
-def remove_bad_trials(data, threshold=0.97):
-    """Remove 'bad' trials from a data set.  A trial is bad if the total
-    accuracy never converged to a value close to 1.  The bad trials are
-    deleted from data, but nothing is returned.
+def remove_bad_trials(data, quants, threshold=0.97):
+    """Remove 'bad' trials from a data set.  A trial is bad if it's not
+    the case that each quantifier's accuracy converged to a threshold.
+    The bad trials are deleted from data, but nothing is returned.
     """
-    accuracies = [data[key]['total_accuracy'].values for key in data.keys()]
-    forward_accs = [forward_means(accs) for accs in accuracies]
-    threshold_pos = [first_above_threshold(accs, threshold)
-                     for accs in forward_accs]
-    # a trial is bad if the forward mean never hit 0.99
-    bad_trials = [idx for idx, thresh in enumerate(threshold_pos)
-                  if thresh is None]
+    bad_trials = set([])
+    for quant in quants:
+        accuracies = [data[key][quant + '_accuracy'].values for key in data]
+        forward_accs = [forward_means(accs) for accs in accuracies]
+        threshold_pos = [first_above_threshold(accs, threshold)
+                         for accs in forward_accs]
+        # a trial is bad if the forward mean never hit 0.99
+        bad_trials |= set([idx for idx, thresh in enumerate(threshold_pos)
+                      if thresh is None])
     print 'Number of bad trials: {}'.format(len(bad_trials))
     for trial in bad_trials:
         del data[trial]
