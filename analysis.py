@@ -78,8 +78,12 @@ def experiment_two_b_analysis():
     experiment_analysis('data/exp2b', ['at_least_3', 'last_3'], threshold=0.93)
 
 
-def experiment_three_analysis():
-    experiment_analysis('data/exp3', ['not_all', 'not_only'])
+def experiment_three_a_analysis():
+    experiment_analysis('data/exp3a', ['not_all', 'not_only'])
+
+
+def experiment_three_b_analysis():
+    experiment_analysis('data/exp3b', ['most', 'M'])
 
 
 def remove_bad_trials(data, quants, threshold=0.97):
