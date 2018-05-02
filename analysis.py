@@ -245,6 +245,8 @@ def make_plot(data, quants, ylim=None, threshold=0.95):
     if ylim:
         plt.ylim(ylim)
 
+    plt.xlabel('training steps')
+    plt.ylabel('test set accuracy')
     plt.legend(loc=4)
     plt.show()
 
