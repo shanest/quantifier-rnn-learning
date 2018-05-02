@@ -25,7 +25,8 @@ import util
 COLORS = ['blue', 'red']
 
 
-def experiment_analysis(path, quants, trials=range(30), plots=True):
+def experiment_analysis(path, quants, trials=range(30), plots=True,
+        threshold=0.95):
     """Prints statistical tests and makes plots for experiment one.
 
     Args:
@@ -36,15 +37,15 @@ def experiment_analysis(path, quants, trials=range(30), plots=True):
     # read the data in
     data = util.read_trials_from_csv(path, trials)
     # FILTER OUT TRIALS WHERE RNN DID NOT LEARN
-    remove_bad_trials(data)
+    remove_bad_trials(data, threshold=threshold)
     # get convergence points per quantifier
-    convergence_points = get_convergence_points(data, quants)
+    convergence_points = get_convergence_points(data, quants, threshold)
 
     if plots:
         # make plots
         make_boxplots(convergence_points, quants)
         make_barplots(convergence_points, quants)
-        make_plot(data, quants, ylim=(0.8, 1))
+        make_plot(data, quants, ylim=(0.8, 1), threshold=threshold)
 
     print stats.ttest_rel(convergence_points[quants[0]],
                           convergence_points[quants[1]])
@@ -62,6 +63,10 @@ def experiment_one_b_analysis():
 
 def experiment_two_analysis():
     experiment_analysis('data/exp2', ['at_least_3', 'first_3'])
+
+
+def experiment_two_b_analysis():
+    experiment_analysis('data/exp2b', ['at_least_3', 'last_3'], threshold=0.93)
 
 
 def experiment_three_analysis():
@@ -85,7 +90,7 @@ def remove_bad_trials(data, threshold=0.97):
         del data[trial]
 
 
-def get_convergence_points(data, quants):
+def get_convergence_points(data, quants, threshold):
     """Get convergence points by quantifier for the data.
 
     Args:
@@ -102,7 +107,8 @@ def get_convergence_points(data, quants):
             convergence_points[quant].append(
                 data[trial]['global_step'][
                     convergence_point(
-                        data[trial][quant + '_accuracy'].values)])
+                        data[trial][quant + '_accuracy'].values,
+                        threshold)])
     return convergence_points
 
 
