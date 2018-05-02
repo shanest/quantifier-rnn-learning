@@ -61,8 +61,8 @@ def experiment_one_b_analysis():
                                        'at_least_6_or_at_most_2'])
 
 
-def experiment_two_analysis():
-    experiment_analysis('data/exp2', ['at_least_3', 'first_3'])
+def experiment_two_a_analysis():
+    experiment_analysis('data/exp2a', ['at_least_3', 'first_3'])
 
 
 def experiment_two_b_analysis():
