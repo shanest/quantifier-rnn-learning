@@ -22,3 +22,14 @@ python quant_verify.py --exp one_a --out_path /tmp/exp1a/
 ```
 
 Note that the output written to `out_path` will also contain checkpoints and other data from TensorFlow in addition to CSV files recording the relevant information from each trial.
+
+## Analyzing Data
+
+To analyze the output from an experiment, use the `analysis.experiment_analysis` method.  It takes two arguments: a path to a directory containing the CSV files output by a run of an experiment, and an array containing the names of quantifiers in the experiment.
+
+To re-create the analysis from the paper and the figures included therein, you can use the predefined methods.  For example, in a Python shell:
+
+```
+import analysis
+analysis.experiment_one_a_analysis()
+```
