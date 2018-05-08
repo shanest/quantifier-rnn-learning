@@ -7,6 +7,8 @@ In particular, we attempt to explain semantic universals surrounding quantifiers
 
 This repository contains all the code needed to replicate the experiments reported in that paper.  It also contains the data and figures from the experiments that we ran and which are reported therein.
 
+If you have any questions and/or want to extend the code-base and/or run your own experiments, feel free to get in touch!
+
 ## Requirements
 
 Python 2.7, TensorFlow 1.4+, Pandas
@@ -33,3 +35,15 @@ To re-create the analysis from the paper and the figures included therein, you c
 import analysis
 analysis.experiment_one_a_analysis()
 ```
+
+## Designing and Running New Experiments
+
+The code is designed to make it easy to design and run new experiments.  You can look at any of the `experiment_` methods in `quant_verify.py` for inspiration.  I recommend copy/pasting one of these methods, renaming it, updating the parameters to what you would like, and then running it!  The next section tells you how to make new quantifiers if you want to test some not included.
+
+## Defining New Quantifiers
+
+All of the quantifiers are defined in `quantifiers.py`.  The core is a verification method, named `_ver(seq)`.  This takes in a sequence of characters (named `Quantifier.AB`, `Quantifier.AnotB`, et cetera) and outputs one of the truth values `Quantifier.T` or `Quantifier.F`.  This method implements the core semantics of a quantifier.
+
+The verification method is then wrapped inside a `Quantifier` object, which provides a name for the quantifier and assigns it certain semantic properties.  Note that the name used here must match the names passed in as strings to the `experiment_analysis` method.
+
+Again, I recommend using an example from `quantifiers.py` as your starting point for defining a new quantifier.
