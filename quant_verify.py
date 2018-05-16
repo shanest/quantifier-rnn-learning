@@ -14,6 +14,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
+from __future__ import print_function
+from builtins import range
 from collections import defaultdict
 import argparse
 import tensorflow as tf
@@ -154,7 +156,7 @@ def lstm_model_fn(features, labels, mode, params):
     target_by_quant = tf.dynamic_partition(
         target, quant_indices, num_quants)
 
-    for idx in xrange(num_quants):
+    for idx in range(num_quants):
         key = '{}_accuracy'.format(params['quantifiers'][idx]._name)
         eval_metrics[key] = tf.metrics.accuracy(
             target_by_quant[idx], prediction_by_quant[idx])
@@ -201,10 +203,10 @@ class EvalEarlyStopHook(tf.train.SessionRunHook):
         if (global_step-1) % self._num_steps == 0:
             ev_results = self._estimator.evaluate(input_fn=self._input_fn)
 
-            print ''
-            for key, value in ev_results.items():
+            print('')
+            for key, value in list(ev_results.items()):
                 self._results[key].append(value)
-                print '{}: {}'.format(key, value)
+                print('{}: {}'.format(key, value))
 
             # TODO: add running total accuracy or other complex stop condition?
             if ev_results['loss'] < self._stop_loss:
@@ -266,7 +268,7 @@ def run_trial(eparams, hparams, trial_num,
         batch_size=len(test_x),
         shuffle=False)
 
-    print '\n------ TRIAL {} -----'.format(trial_num)
+    print('\n------ TRIAL {} -----'.format(trial_num))
 
     # train and evaluate model together, using the Hook
     model.train(input_fn=train_input_fn,

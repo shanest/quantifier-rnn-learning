@@ -14,7 +14,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
+from __future__ import division
+from __future__ import print_function
 
+from builtins import range
+from past.utils import old_div
 import itertools as it
 import numpy as np
 import scipy.stats as stats
@@ -25,7 +29,7 @@ import util
 COLORS = ['blue', 'red']
 
 
-def experiment_analysis(path, quants, trials=range(30), plots=True,
+def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
         threshold=0.95):
     """Prints statistical tests and makes plots for experiment one.
 
@@ -47,17 +51,17 @@ def experiment_analysis(path, quants, trials=range(30), plots=True,
         make_barplots(convergence_points, quants)
         make_plot(data, quants, ylim=(0.8, 1), threshold=threshold)
 
-    print stats.ttest_rel(convergence_points[quants[0]],
-                          convergence_points[quants[1]])
+    print(stats.ttest_rel(convergence_points[quants[0]],
+                          convergence_points[quants[1]]))
 
     final_n = 50
     final_means = [[forward_means(data[trial][quant + '_accuracy'].values,
         window_size=final_n)[-final_n] for quant in quants]
         for trial in data]
-    print 'final means: {} - {}'.format(quants[0], quants[1])
-    print stats.ttest_rel(
+    print('final means: {} - {}'.format(quants[0], quants[1]))
+    print(stats.ttest_rel(
             [means[0] for means in final_means],
-            [means[1] for means in final_means])
+            [means[1] for means in final_means]))
 
 
 def experiment_one_a_analysis():
@@ -100,7 +104,7 @@ def remove_bad_trials(data, quants, threshold=0.97):
         # a trial is bad if the forward mean never hit 0.99
         bad_trials |= set([idx for idx, thresh in enumerate(threshold_pos)
                       if thresh is None])
-    print 'Number of bad trials: {}'.format(len(bad_trials))
+    print('Number of bad trials: {}'.format(len(bad_trials)))
     for trial in bad_trials:
         del data[trial]
 
@@ -117,7 +121,7 @@ def get_convergence_points(data, quants, threshold):
         the step at which accuracy on that quantifier converged on each trial.
     """
     convergence_points = {q: [] for q in quants}
-    for trial in data.keys():
+    for trial in list(data.keys()):
         for quant in quants:
             convergence_points[quant].append(
                 data[trial]['global_step'][
@@ -155,8 +159,7 @@ def forward_means(arr, window_size=250):
     Returns:
         a list, of same length as arr, with the forward means
     """
-    return [(sum(arr[idx:min(idx+window_size, len(arr))])
-             / min(window_size, len(arr)-idx))
+    return [(old_div(sum(arr[idx:min(idx+window_size, len(arr))]), min(window_size, len(arr)-idx)))
             for idx in range(len(arr))]
 
 
@@ -202,7 +205,7 @@ def get_max_steps(data):
     """
     max_val = None
     max_len = 0
-    for key in data.keys():
+    for key in list(data.keys()):
         new_len = len(data[key]['global_step'].values)
         if new_len > max_len:
             max_len = new_len
@@ -222,7 +225,7 @@ def make_plot(data, quants, ylim=None, threshold=0.95):
     assert len(quants) <= len(COLORS)
 
     trials_by_quant = [[] for _ in range(len(quants))]
-    for trial in data.keys():
+    for trial in list(data.keys()):
         steps = data[trial]['global_step'].values
         for idx in range(len(quants)):
             trials_by_quant[idx].append(smooth_data(
@@ -284,7 +287,7 @@ def make_boxplots(convergence_points, quants):
         quants: names of quantifiers
     """
     plt.boxplot([convergence_points[quant] for quant in quants])
-    plt.xticks(range(1, len(quants)+1), quants)
+    plt.xticks(list(range(1, len(quants)+1)), quants)
     plt.show()
 
 
@@ -305,7 +308,7 @@ def make_barplots(convergence_points, quants):
     stds = {pair: np.std(diffs[pair]) for pair in pairs}
     intervals = {pair: stats.norm.interval(
         0.95, loc=means[pair],
-        scale=stds[pair]/np.sqrt(len(diffs[pair])))
+        scale=old_div(stds[pair],np.sqrt(len(diffs[pair]))))
         for pair in pairs}
 
     # plotting info

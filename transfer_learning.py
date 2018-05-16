@@ -14,6 +14,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
+from __future__ import print_function
+from builtins import range
 import tensorflow as tf
 import numpy as np
 
@@ -147,9 +149,9 @@ def transfer_test():
         shuffle=False)
 
     predictions = list(model.predict(input_fn=predict_input_fn))
-    for idx in xrange(5):
-        print 'input: {}\nprobs: {}\n'.format(some_inputs[idx],
-                                              predictions[idx]['probs'])
+    for idx in range(5):
+        print('input: {}\nprobs: {}\n'.format(some_inputs[idx],
+                                              predictions[idx]['probs']))
 
 
 if __name__ == '__main__':
