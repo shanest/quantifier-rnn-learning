@@ -18,7 +18,6 @@ from __future__ import division
 from __future__ import print_function
 
 from builtins import range
-from past.utils import old_div
 import itertools as it
 import numpy as np
 import scipy.stats as stats
@@ -30,7 +29,7 @@ COLORS = ['blue', 'red']
 
 
 def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
-        threshold=0.95):
+                        threshold=0.95):
     """Prints statistical tests and makes plots for experiment one.
 
     Args:
@@ -56,8 +55,8 @@ def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
 
     final_n = 50
     final_means = [[forward_means(data[trial][quant + '_accuracy'].values,
-        window_size=final_n)[-final_n] for quant in quants]
-        for trial in data]
+                                  window_size=final_n)[-final_n]
+                    for quant in quants] for trial in data]
     print('final means: {} - {}'.format(quants[0], quants[1]))
     print(stats.ttest_rel(
             [means[0] for means in final_means],
@@ -103,7 +102,7 @@ def remove_bad_trials(data, quants, threshold=0.97):
                          for accs in forward_accs]
         # a trial is bad if the forward mean never hit 0.99
         bad_trials |= set([idx for idx, thresh in enumerate(threshold_pos)
-                      if thresh is None])
+                           if thresh is None])
     print('Number of bad trials: {}'.format(len(bad_trials)))
     for trial in bad_trials:
         del data[trial]
@@ -159,7 +158,8 @@ def forward_means(arr, window_size=250):
     Returns:
         a list, of same length as arr, with the forward means
     """
-    return [(old_div(sum(arr[idx:min(idx+window_size, len(arr))]), min(window_size, len(arr)-idx)))
+    return [(sum(arr[idx:min(idx+window_size, len(arr))])
+             / min(window_size, len(arr)-idx))
             for idx in range(len(arr))]
 
 
@@ -308,7 +308,7 @@ def make_barplots(convergence_points, quants):
     stds = {pair: np.std(diffs[pair]) for pair in pairs}
     intervals = {pair: stats.norm.interval(
         0.95, loc=means[pair],
-        scale=old_div(stds[pair],np.sqrt(len(diffs[pair]))))
+        scale=stds[pair]/np.sqrt(len(diffs[pair])))
         for pair in pairs}
 
     # plotting info
