@@ -11,9 +11,9 @@ If you have any questions and/or want to extend the code-base and/or run your ow
 
 ## Requirements
 
-Python 2.7, TensorFlow 1.4+, Pandas
+Python 2.7+, TensorFlow 1.4+, Pandas
 
-I plan to make the code compatible with Python 3 soon.
+[NB:  the code should be compatible with Python 3, but has not been tested with it.]
 
 ## Running Experiments
 
