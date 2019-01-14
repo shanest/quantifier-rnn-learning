@@ -242,7 +242,7 @@ def make_plot(data, quants, ylim=None, threshold=0.95):
         plt.plot(longest_x,
                  smooth_data(medians_by_quant[idx]),
                  COLORS[idx],
-                 label=quants[idx],
+                 label=quants[idx].replace('_', ' '),
                  linewidth=2)
 
     max_x = max([len(ls) for ls in medians_by_quant])
