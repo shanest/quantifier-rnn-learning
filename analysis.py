@@ -29,7 +29,7 @@ COLORS = ['blue', 'red']
 
 
 def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
-                        threshold=0.95):
+                        threshold=0.95, filename=None):
     """Prints statistical tests and makes plots for experiment one.
 
     Args:
@@ -48,7 +48,8 @@ def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
         # make plots
         make_boxplots(convergence_points, quants)
         make_barplots(convergence_points, quants)
-        make_plot(data, quants, ylim=(0.8, 1), threshold=threshold)
+        make_plot(data, quants, ylim=(0.8, 1), threshold=threshold,
+                  filename=filename)
 
     print(stats.ttest_rel(convergence_points[quants[0]],
                           convergence_points[quants[1]]))
@@ -63,30 +64,41 @@ def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
             [means[1] for means in final_means]))
 
 
-def experiment_one_a_analysis():
-    experiment_analysis('data/exp1a', ['at_least_4',
-                                       'at_least_6_or_at_most_2'])
+def experiment_one_a_analysis(filename=None):
+    experiment_analysis('data/exp1a',
+                        ['at_least_4', 'at_least_6_or_at_most_2'],
+                        filename=filename)
 
 
-def experiment_one_b_analysis():
-    experiment_analysis('data/exp1b', ['at_most_3',
-                                       'at_least_6_or_at_most_2'])
+def experiment_one_b_analysis(filename=None):
+    experiment_analysis('data/exp1b',
+                        ['at_most_3', 'at_least_6_or_at_most_2'],
+                        filename=filename)
 
 
-def experiment_two_a_analysis():
-    experiment_analysis('data/exp2a', ['at_least_3', 'first_3'])
+def experiment_two_a_analysis(filename=None):
+    experiment_analysis('data/exp2a',
+                        ['at_least_3', 'first_3'],
+                        filename=filename)
 
 
-def experiment_two_b_analysis():
-    experiment_analysis('data/exp2b', ['at_least_3', 'last_3'], threshold=0.93)
+def experiment_two_b_analysis(filename=None):
+    experiment_analysis('data/exp2b',
+                        ['at_least_3', 'last_3'],
+                        filename=filename,
+                        threshold=0.93)
 
 
-def experiment_three_a_analysis():
-    experiment_analysis('data/exp3a', ['not_all', 'not_only'])
+def experiment_three_a_analysis(filename=None):
+    experiment_analysis('data/exp3a',
+                        ['not_all', 'not_only'],
+                        filename=filename)
 
 
-def experiment_three_b_analysis():
-    experiment_analysis('data/exp3b', ['most', 'M'])
+def experiment_three_b_analysis(filename=None):
+    experiment_analysis('data/exp3b',
+                        ['most', 'M'],
+                        filename=filename)
 
 
 def remove_bad_trials(data, quants, threshold=0.97):
@@ -213,7 +225,7 @@ def get_max_steps(data):
     return max_val
 
 
-def make_plot(data, quants, ylim=None, threshold=0.95):
+def make_plot(data, quants, ylim=None, threshold=0.95, filename=None):
     """Makes a line plot of the accuracy of trials by quantifier, color coded,
     and with the medians also plotted.
 
@@ -223,6 +235,7 @@ def make_plot(data, quants, ylim=None, threshold=0.95):
         ylim: y-axis boundaries
     """
     assert len(quants) <= len(COLORS)
+    plt.figure(figsize=(18, 12))
 
     trials_by_quant = [[] for _ in range(len(quants))]
     for trial in list(data.keys()):
@@ -242,7 +255,7 @@ def make_plot(data, quants, ylim=None, threshold=0.95):
         plt.plot(longest_x,
                  smooth_data(medians_by_quant[idx]),
                  COLORS[idx],
-                 label=quants[idx].replace('_', ' '),
+                 label='Q{}: {}'.format(idx, quants[idx].replace('_', ' ')),
                  linewidth=2)
 
     max_x = max([len(ls) for ls in medians_by_quant])
@@ -254,8 +267,11 @@ def make_plot(data, quants, ylim=None, threshold=0.95):
 
     plt.xlabel('training steps')
     plt.ylabel('test set accuracy')
-    plt.legend(loc=4)
-    plt.show()
+    plt.legend(loc=4, fontsize=24)
+    if filename:
+        plt.savefig(filename, bbox_inches='tight')
+    else:
+        plt.show()
 
 
 def get_median_diff_lengths(trials):
