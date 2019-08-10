@@ -267,7 +267,7 @@ def make_plot(data, quants, ylim=None, threshold=0.95, filename=None, size=None)
 
     plt.xlabel('training steps')
     plt.ylabel('test set accuracy')
-    plt.legend(loc=4, fontsize=16)
+    plt.legend(loc=4, fontsize=12)
     if filename:
         plt.savefig(filename, bbox_inches='tight')
     else:
@@ -362,7 +362,7 @@ def smooth_data(data, smooth_weight=0.9):
 
 if __name__ == '__main__':
 
-    experiment_one_a_analysis(filename='data/exp1a_acc_small.png', size=(9, 6))
-    experiment_one_b_analysis(filename='data/exp1b_acc_small.png', size=(9, 6))
-    experiment_two_a_analysis(filename='data/exp2a_acc_small.png', size=(9, 6))
-    experiment_two_b_analysis(filename='data/exp2b_acc_small.png', size=(9, 6))
+    experiment_one_a_analysis(filename='data/exp1a_acc_small.png', size=(6, 4))
+    experiment_one_b_analysis(filename='data/exp1b_acc_small.png', size=(6, 4))
+    experiment_two_a_analysis(filename='data/exp2a_acc_small.png', size=(6, 4))
+    experiment_two_b_analysis(filename='data/exp2b_acc_small.png', size=(6, 4))
