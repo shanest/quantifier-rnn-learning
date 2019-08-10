@@ -29,7 +29,7 @@ COLORS = ['blue', 'red']
 
 
 def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
-                        threshold=0.95, filename=None):
+                        threshold=0.95, filename=None, size=None):
     """Prints statistical tests and makes plots for experiment one.
 
     Args:
@@ -46,10 +46,10 @@ def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
 
     if plots:
         # make plots
-        make_boxplots(convergence_points, quants)
-        make_barplots(convergence_points, quants)
+        # make_boxplots(convergence_points, quants)
+        # make_barplots(convergence_points, quants)
         make_plot(data, quants, ylim=(0.8, 1), threshold=threshold,
-                  filename=filename)
+                  filename=filename, size=size)
 
     print(stats.ttest_rel(convergence_points[quants[0]],
                           convergence_points[quants[1]]))
@@ -64,41 +64,41 @@ def experiment_analysis(path, quants, trials=list(range(30)), plots=True,
             [means[1] for means in final_means]))
 
 
-def experiment_one_a_analysis(filename=None):
+def experiment_one_a_analysis(filename=None, size=None):
     experiment_analysis('data/exp1a',
                         ['at_least_4', 'at_least_6_or_at_most_2'],
-                        filename=filename)
+                        filename=filename, size=size)
 
 
-def experiment_one_b_analysis(filename=None):
+def experiment_one_b_analysis(filename=None, size=None):
     experiment_analysis('data/exp1b',
                         ['at_most_3', 'at_least_6_or_at_most_2'],
-                        filename=filename)
+                        filename=filename, size=size)
 
 
-def experiment_two_a_analysis(filename=None):
+def experiment_two_a_analysis(filename=None, size=None):
     experiment_analysis('data/exp2a',
                         ['at_least_3', 'first_3'],
-                        filename=filename)
+                        filename=filename, size=size)
 
 
-def experiment_two_b_analysis(filename=None):
+def experiment_two_b_analysis(filename=None, size=None):
     experiment_analysis('data/exp2b',
                         ['at_least_3', 'last_3'],
-                        filename=filename,
+                        filename=filename, size=size,
                         threshold=0.93)
 
 
-def experiment_three_a_analysis(filename=None):
+def experiment_three_a_analysis(filename=None, size=None):
     experiment_analysis('data/exp3a',
                         ['not_all', 'not_only'],
-                        filename=filename)
+                        filename=filename, size=size)
 
 
-def experiment_three_b_analysis(filename=None):
+def experiment_three_b_analysis(filename=None, size=None):
     experiment_analysis('data/exp3b',
                         ['most', 'M'],
-                        filename=filename)
+                        filename=filename, size=size)
 
 
 def remove_bad_trials(data, quants, threshold=0.97):
@@ -225,7 +225,7 @@ def get_max_steps(data):
     return max_val
 
 
-def make_plot(data, quants, ylim=None, threshold=0.95, filename=None):
+def make_plot(data, quants, ylim=None, threshold=0.95, filename=None, size=None):
     """Makes a line plot of the accuracy of trials by quantifier, color coded,
     and with the medians also plotted.
 
@@ -235,7 +235,7 @@ def make_plot(data, quants, ylim=None, threshold=0.95, filename=None):
         ylim: y-axis boundaries
     """
     assert len(quants) <= len(COLORS)
-    plt.figure(figsize=(18, 12))
+    plt.figure(figsize=size or (18, 12))
 
     trials_by_quant = [[] for _ in range(len(quants))]
     for trial in list(data.keys()):
@@ -267,7 +267,7 @@ def make_plot(data, quants, ylim=None, threshold=0.95, filename=None):
 
     plt.xlabel('training steps')
     plt.ylabel('test set accuracy')
-    plt.legend(loc=4, fontsize=24)
+    plt.legend(loc=4, fontsize=16)
     if filename:
         plt.savefig(filename, bbox_inches='tight')
     else:
@@ -358,3 +358,11 @@ def smooth_data(data, smooth_weight=0.9):
         smoothed.append(prev*smooth_weight + point*(1-smooth_weight))
         prev = smoothed[-1]
     return smoothed
+
+
+if __name__ == '__main__':
+
+    experiment_one_a_analysis(filename='data/exp1a_acc_small.png', size=(9, 6))
+    experiment_one_b_analysis(filename='data/exp1b_acc_small.png', size=(9, 6))
+    experiment_two_a_analysis(filename='data/exp2a_acc_small.png', size=(9, 6))
+    experiment_two_b_analysis(filename='data/exp2b_acc_small.png', size=(9, 6))
